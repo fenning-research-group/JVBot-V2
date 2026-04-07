@@ -1,0 +1,61 @@
+# Constants for the hardware modules that compose JVBot
+gantry:
+  serial_connection: # Legacy BTT SKR Mini E3 V2.0 mode
+    
+    device_indentifiers:
+      vid: 7855
+      pid: 4
+    pollingrate: 0.05 # delay (s) between sending a command and reading the response
+    timeout: 15 # max time (s) allotted to gantry motion before flaggin a movement error
+    positiontolerance: 0.05 # tolerance (mm) of a given motion to be considered complete
+    speed_max: 100000 # max gantry speed (mm/min)
+    speed_min: 500 # min gantry speed (mm/min)
+    zhop_height: 15 #vertical clearance (mm) to use when moving between two points. Will move this amount above the highest z point.
+    load_coordinates: [30, 170, 20] # coordinates of tray loading
+    tray_limits: # max motion of the measurement probe.
+      x_max: 70
+      x_min: -25
+      y_max: 170
+      y_min: 0
+      z_max: 200
+      z_min: 0
+  ethernet_connection: # Duet 3 Mini 5+ WiFi mode
+    device_identifiers:
+      ip: 192.168.0.100
+    pollingrate: 0.05 # delay (s) between sending a command and reading the response
+    timeout: 15 # max time (s) allotted to gantry motion before flaggin a movement error
+    positiontolerance: 0.05 # tolerance (mm) of a given motion to be considered complete
+    speed_max: 100000 # max gantry speed (mm/min)
+    speed_min: 500 # min gantry speed (mm/min)
+    zhop_height: 15 #vertical clearance (mm) to use when moving between two points. Will move this amount above the highest z point.
+    load_coordinates: [30, 170, 20] # coordinates of tray loading
+    tray_limits: # max motion of the measurement probe.
+      x_max: 70
+      x_min: -25
+      y_max: 170
+      y_min: 0
+      z_max: 200
+      z_min: 0
+  wifi_connection: # Duet 3 Mini 5+ WiFi mode
+    device_identifiers:
+      ip: 192.168.0.100
+    pollingrate: 0.05 # delay (s) between sending a command and reading the response
+    timeout: 15 # max time (s) allotted to gantry motion before flaggin a movement error
+    positiontolerance: 0.05 # tolerance (mm) of a given motion to be considered complete
+    speed_max: 100000 # max gantry speed (mm/min)
+    speed_min: 500 # min gantry speed (mm/min)
+    zhop_height: 15 #vertical clearance (mm) to use when moving between two points. Will move this amount above the highest z point.
+    load_coordinates: [30, 170, 20] # coordinates of tray loading
+    tray_limits: # max motion of the measurement probe.
+      x_max: 70
+      x_min: -25
+      y_max: 170
+      y_min: 0
+      z_max: 200
+      z_min: 0
+keithley:
+  address: "GPIB0::22::INSTR"
+  four_wire: True # True for 4-wire measurement, False for 2-wire
+  compliance_current: 1.05 # compliance current (A) for keithley
+  compliance_voltage: 2 # compliance voltage (V) for keithley
+  counts: 2 # number of readings to take at each point
