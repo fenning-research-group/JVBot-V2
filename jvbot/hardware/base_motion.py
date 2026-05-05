@@ -1,3 +1,55 @@
+"""This file contains the core logic of handling a modality of motion control in JVBot.
+
+Classes
+-------
+ConnectConfig: Type[BaseConstantsConfig]
+    Dataclass container to hold hardwareconstants relevant to some form of hardware communication.
+MotionConfig: Type[BaseConstantsConfig]
+    Dataclass container to hold hardwareconstants relevant to some form of gantry motion control.
+GridConfig: Type[MotionConfig]
+    Wrapper of MotionConfig to also include hardwareconstants relevant to gantry-space 3D discrete mappings.
+Frames: Type[Enum]
+    Enumeration class to match pre-allocation gantry coordinate sets in partitions.
+
+BaseCommunicator: Type[abc.ABC]
+    Base class to define fundamental hardware communication logic
+SerialCommunicator: Type[BaseCommunicator]
+    Wrapper of BaseCommunicator specialized to interface with BigTreeTech SKR Mini E3 V2.0 motion control 
+    over a wired USB connection.
+SocketCommunicator: Type[BaseCommunicator]
+    Wrapper of BaseCommunicator specialized to interface with a Duet 3 Mini 5+ Ethernet motion control 
+    board over a wired Ethernet TCP connection.
+WiFiCommunicator: Type[SocketCommunicator]
+    Wrapper of SocketCommunicator specialized to interface with a Duet 3 Mini 5+ WiFi motion control
+    board over the wireless connection.
+FakeCommunicator: Type[SocketCommunicator]
+    Wrapper of SocketCommunicator designed to simulate Duet 3 Mini 5+ motion control board communications
+    for testing of non-communication errors of the gantry module.
+
+BaseMotionControl: Type[abc.ABC]
+    Base class to define fundamental cartesian X,Y,Z motion logic over g-code commands to motor drivers.
+DiscreteMotionControl: Type[BaseMotionControl]
+    Wrapper of BaseMotionControl to handle conversion of continuous 3-space into discrete 3-space to 
+    minimize accumulation of positional errors of open-loop stepper motors in long-term operation.
+BTTSKRMiniE3_MotionControl: Type[BaseMotionControl]
+    Wrapper of BaseMotionControl to implement the SerialCommunicator with the g-code logic
+Duet3Mini5PlusEthernet_MotionControl: Type[DiscreteMotionControl]:
+    Wrapper of DiscreteMotionControl to implement the SocketCommunicator with the G-code logic
+
+Errors
+------
+HomingError:
+    Exception raised if the gantry has not been homed before a motion is attempted.
+FrameError:
+    Exception raised if the gantry needs to transition between coordinate frames of reference.
+    e.g., if some region of the gantry's maximum range of motion has geometric constraints.
+TargetError:
+    Exception raised if the positional target of the move command is outside of the 
+    allowed domain of gantry motion.
+
+"""
+
+
 from dataclasses import dataclass, fields, _MISSING_TYPE, field
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -15,6 +67,7 @@ except:
 import os
 import yaml
 
+from .base_config import BaseConstantsConfig
 
 MODULE_DIR = os.path.dirname(__file__)
 with open(os.path.join(MODULE_DIR, "hardwareconstants.yaml"), "r") as f:
@@ -49,20 +102,14 @@ class TargetError(Exception):
 
 
 @dataclass
-class ConnectConfig:
+class ConnectConfig(BaseConstantsConfig):
     """dataclass for storing base properties used to set up communications."""
     POLLINGDELAY: float = 0.05
     port: Union[str, None] = ""
     ip: Union[str, None] = ""
 
-    def __post_init__(self):
-        for field in fields(self):
-            # If there is a default and the value of the field is missing, then we can assign a value
-            if not isinstance(field.default, _MISSING_TYPE) and getattr(self, field.name) is None:
-                setattr(self, field.name, field.default)
-
 @dataclass
-class MotionConfig:
+class MotionConfig(BaseConstantsConfig):
     """dataclass for storing the base properties used for continuous motion control"""
     # Motion Planning:
     position: Union[tuple, list] = field(default_factory = list)
@@ -80,11 +127,6 @@ class MotionConfig:
     in_use: bool = True
     GANTRYTIMEOUT: float = 1
 
-    def __post_init__(self):
-        for field in fields(self):
-            # If there is a default and the value of the field is missing, then we can assign a value
-            if not isinstance(field.default, _MISSING_TYPE) and getattr(self, field.name) is None:
-                setattr(self, field.name, field.default)
 @dataclass
 class GridConfig(MotionConfig):
     """dataclass for storing the base properties used for discrete motion control."""

@@ -1,6 +1,7 @@
 import serial.tools.list_ports as lp
 import sys
-
+from .base_config import BaseConstantsConfig
+from typing import Tuple, List, Union
 
 def which_os():
     if sys.platform.startswith("win"):
@@ -45,3 +46,42 @@ def get_port(device_identifiers):
     if port is None:
         raise ValueError(f"Device not found!")
     return port
+
+
+
+def setup_config(obj_instance, attr_info: List[Tuple[str, Union[str, dict, int, float, list]]]) -> None:
+    """Scrape the hardware constants.
+    
+    Adds attrs from attr_info into the configuration of the provided obj_instance
+
+    Parameters
+    ----------
+    obj_instance : Union[BaseMotionControl, BaseCommunicator, BaseControlKeithley]
+    attr_info:
+    """
+    for ati in attr_info:
+        name_, val_ = ati
+        if isinstance(val_, dict):
+            if "device_identifiers" == name_:
+                val = {k: obj_instance._constants[k][v] for k, v in val_.items()}
+            elif ("grid_spacing" in name_) or ("ip" in name_):
+                vd = {k: obj_instance._constants[k][v] for k, v in val_.items()}
+                vv = [v for _, v in vd.items()][0]
+                val = vv
+            elif ("_" in name_) and (not val_):
+                val = {k: obj_instance._constants[v] for k, v in val_.items()}
+            elif ("_" in name_) and (val_) and ("FRAMES" not in name_):
+                val = {}
+            elif ("FRAMES" in name_):
+                val = {k: obj_instance._constants[v] for k, v in val_.items()}
+            else:
+                val = {k: obj_instance._constants[k][v] for k, v in val_.items()}
+        elif isinstance(val_, str):
+            val = obj_instance._constants[val_]
+        else:
+            val = val_
+        setattr(
+            obj_instance._config,
+            name_,
+            val,
+        )

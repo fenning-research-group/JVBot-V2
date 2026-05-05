@@ -1,7 +1,7 @@
 from .base_motion import (
     BTTSKRMiniE3_MotionControl, Duet3Mini5PlusWiFi_MotionControl, 
     Duet3Mini5PlusEthernet_MotionControl, SerialCommunicator,
-    SocketCommunicator, WiFiCommunicator
+    SocketCommunicator, WiFiCommunicator, FakeCommunicator
 )
 import time
 import re
@@ -15,6 +15,8 @@ import os
 
 from functools import partial
 from .helpers import get_port
+
+from typing import Union
 
 
 MODULE_DIR = os.path.dirname(__file__)
