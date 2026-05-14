@@ -46,10 +46,6 @@ class Gantry:
         # gantry variables
         self.LOAD_COORDINATES = constants["gantry"]["load_coordinates"]
 
-        self.__currentframe = None
-
-        self._original_pascal = True # False to revert to May 2025 gantry behavior.
-
         self.position = [
             None,
             None,
@@ -212,11 +208,41 @@ class Gantry:
     #     return response_0, response
 
     def disconnect(self):
-        self._handle.close()
-        del self._handle
+        if self._wifi:
+            try:
+                self.session.get(
+                    f"{self.base_url}/rr_disconnect",
+                    timeout = 3
+                )
+            except Exception:
+                pass
+            self.session.close()
+            del self.session
+        else:
+            self._handle.close()
+            del self._handle
 
     def set_defaults(self):
-        if self._ethernet:
+        if self._wifi:
+            self.write("M501")  # load defaults from EEPROM
+            self.write("G90")  # absolute coordinate system
+            self.write(
+                "M92 X53.0 Y53.0 Z3200.0"
+            )  # feedrate steps/mm, randomly resets to defaults sometimes idk why
+            self.write(
+                "M201 X250.0 Y250.0 Z10.0"
+            )  # acceleration steps/mm/mm, randomly resets to defaults sometimes idk why
+            self.write(
+                "M906 X580 Y580 Z25"
+            )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
+            self.write(
+                "M84 S0"
+            )  # disable stepper timeout, steppers remain engaged all the time
+            self.write(
+                f"M203 X50 Y50 Z1.00"
+            )  # set max speeds, steps/mm. Z is hardcoded, limited by lead screw hardware.
+
+        elif self._ethernet:
             self.write("M501")  # load defaults from EEPROM
             self.write("G90")  # absolute coordinate system
             self.write(
@@ -323,14 +349,8 @@ class Gantry:
                         break
         self.position = [
             round(x, 1), round(y,1), round(z,1)]
-        self.__currentframe = self._target_frame(*self.position)
-        print(f"\t\t{self.__currentframe}")
-        if self._original_pascal:
-            self.__ZLIM = self.__FRAMES[self.__currentframe]["z_max"]
-        else:
-            self.__ZLIM = (
-                self.__FRAMES["opentrons"]["z_max"] - 3
-            )  # never really needs to go above the height of the opentrons height limit, -3 for buffer
+        self.__ZLIM = constants["wifi_connection"]["tray_limits"]["z_max"]
+        
         # self.__ZLIM = (
         #         self.__FRAMES["opentrons"]["z_max"] - 3
         #     )  
@@ -347,9 +367,11 @@ class Gantry:
 
     def gohome(self):
         # self.movetoclear()
-        self.write("G28 X Y Z")
+        self.write("G28 Z")
         self.update()
-        self.movetoclear()
+        self.write("G28 X Y")
+        self.update()
+        self.movetoload()
 
     def premove(self, x, y, z, zhop=True):
         """
@@ -380,59 +402,28 @@ class Gantry:
                 x, y, z = x  # split 3 coordinates into appropriate variables
         except:
             pass
-        if self._original_pascal:
-            # x = np.round(x, decimals = 1)
-            # y = np.round(y, decimals = 1)
-            # z = np.round(z, decimals = 1)
-            print(x, y, z)
-            x, y, z = self._transform_coordinates(x, y, z)
-            x, y, z = self.premove(x, y, z) # will error out if invalid move
-            if speed is None:
-                speed = self.speed
-            if (x == self.position[0]) and (y == self.position[1]):
-                zhop = False # no use zhopping for no lateral movement
-            if zhop:
-                
-                z_ceiling = max(self.position[2], z) + self.ZHOP_HEIGHT
-                print(f"\tz_ceil: {z_ceiling}, ZLIM: {self.__ZLIM}")
-                z_ceiling = min(
-                    z_ceiling, self.__ZLIM
-                ) # cant z-hop above build volume. mostly here for first move after homing
-                print(f"\tmoving to z_ceil: {z_ceiling}")
-                self.moveto(z = z_ceiling, zhop = False, speed = speed)
-                print(f"\tmoving to x, y: {x}, {y}")
-                self.moveto(x, y, z_ceiling, zhop = False, speed = speed)
-                print(f"\tmoving to z: {z}")
-                self.moveto(z=z, zhop = False, speed = speed)
-            else:
-                self._movecommand(x, y, z, speed)
+        print(x, y, z)
+        x, y, z = self._transform_coordinates(x, y, z)
+        x, y, z = self.premove(x, y, z) # will error out if invalid move
+        if speed is None:
+            speed = self.speed
+        if (x == self.position[0]) and (y == self.position[1]):
+            zhop = False # no use zhopping for no lateral movement
+        if zhop:
+            
+            z_ceiling = max(self.position[2], z) + self.ZHOP_HEIGHT
+            print(f"\tz_ceil: {z_ceiling}, ZLIM: {self.__ZLIM}")
+            z_ceiling = min(
+                z_ceiling, self.__ZLIM
+            ) # cant z-hop above build volume. mostly here for first move after homing
+            print(f"\tmoving to z_ceil: {z_ceiling}")
+            self.moveto(z = z_ceiling, zhop = False, speed = speed)
+            print(f"\tmoving to x, y: {x}, {y}")
+            self.moveto(x, y, z_ceiling, zhop = False, speed = speed)
+            print(f"\tmoving to z: {z}")
+            self.moveto(z=z, zhop = False, speed = speed)
         else:
-            x, y, z = self.premove(x, y, z, zhop)  # will error out if invalid move
-            # print(f"\tGantry moving to:\n\t\tx: {x}, y: {y}, z: {z}")
-            if speed is None:
-                speed = self.speed
-            if (x == self.position[0]) and (y == self.position[1]):
-                zhop = False  # no use zhopping for no lateral movement
-
-            # if self.position[2] > self.__ZLIM:
-            #     m400 = True
-
-            if zhop:
-                z_ceiling = max(self.position[2], z) + self.ZHOP_HEIGHT
-                z_ceiling = min(
-                    z_ceiling, self.__ZLIM
-                )  # cant z-hop above build volume. mostly here for first move after homing.
-                if self._original_pascal:
-                    self.moveto(z=z_ceiling, zhop = False, speed = speed)
-                    self.moveto(x, y, z_ceiling, zhop=False, speed=speed)
-                    self.moveto(z=z, zhop=False, speed=speed)
-                else:
-                    self.moveto(z=self.__ZLIM, zhop=False, speed=speed, m400=True)
-                    self.moveto(x, y, self.__ZLIM, zhop=False, speed=speed, m400=True)
-                    self.moveto(z=z, zhop=False, speed=speed, m400=True)
-
-            else:
-                self._movecommand(x, y, z, speed, m400)
+            self._movecommand(x, y, z, speed)
 
     def movetoload(self):
         self.moveto(self.LOAD_COORDINATES)
@@ -447,10 +438,8 @@ class Gantry:
             z = np.round(z, decimals = 1)
             self.__targetposition = [x, y, z]
             self.write(f"G0 X{x} Y{y} Z{z} F{speed}")
-            if self._original_pascal:
-                return self._waitformovement()
-            else:
-                return self._waitformovement(m400)
+            return self._waitformovement()
+            
 
     def moverel(self, x=0, y=0, z=0, zhop=False, speed=None):
         """
@@ -489,11 +478,8 @@ class Gantry:
         self.inmotion = True
         start_time = time.time()
         time_elapsed = time.time() - start_time
-        if self._original_pascal:
-            self.write("M400")
-        else:
-            if m400 is True:
-                self.write("M400")
+        self.write("M400")
+        
         if self._wifi:
             pass
         elif self._ethernet:
@@ -510,7 +496,9 @@ class Gantry:
             yapping = self._ready_to_talk()
             while yapping:
                 print("Ready to talk")
-                if self._ethernet:
+                if self._wifi:
+                    pass
+                elif self._ethernet:
                     self._handle.settimeout(None)
                     line = self._handle.recv(1024).decode("utf-8").strip()
                     # print(line)
