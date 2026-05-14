@@ -27,9 +27,9 @@ class Gantry:
         # if port is None:
             # self.port = get_port(constants["gantry"]["serial_connection"]["device_identifiers"])
             # print(self.port, "if") ## added comment
-        else:
-            self.port = port
-            print(port, "else") ## added comment
+        # else:
+            # self.port = port
+            # print(port, "else") ## added comment
         if ip is None:
             ip = constants["gantry"]["wifi_connection"]["device_identifiers"]["ip"]
             password = input("Password (hint: PASCAL PC) for connecting to the Duet board:")
@@ -69,7 +69,7 @@ class Gantry:
             "zhop_height"
         ]  # mm above endpoints to move to in between points
         self.__done_connecting = False
-        self.connect()  # connect by default
+        self.connect(password = password)  # connect by default
         self.in_use = True
         print("gantry connected")
 
@@ -77,11 +77,10 @@ class Gantry:
     def connect(self, response = None):
         if response is None:
             response = input("Is the Gantry using a Duet Board? (y/n)")
-            self._ethernet = response in ["y", "Y"]
-        if self._ethernet:
-            self.connect_ethernet()
-        elif not self._ethernet:
-            self.connect_usb()
+            # self._ethernet = response in ["y", "Y"]
+            self._wifi = response in ["y", "Y"]
+            self._ethernet = False
+        self.connect_wifi()
         self.update()
         if self.position == [
             self.__OVERALL_LIMS["x_max"],
@@ -144,6 +143,36 @@ class Gantry:
             self.__done_connecting = True
         except Exception as e:
             raise ValueError(f"Failed to connect to Duet at {self.ip}:{port}! \n{e}")
+    def connect_wifi(self, password):
+        reqs = self.session.get(
+            f"{self.base_url}/rr_connect",
+            params = {"password": password},
+            timeout = 5
+        )
+        reqs.raise_for_status()
+        data = reqs.json()
+        if data.get("err", 1) != 0:
+            raise RuntimeError("Failed to authenticate")
+    def send_gcode(self, command):
+        reqs = self.session.get(
+            f"{self.base_url}/rr_gcode",
+            params = {"gcode": command},
+            timeout = 10,
+        )
+        reqs.raise_for_status()
+    def get_status(self):
+        """Return the Duet board machine state:
+            I = idle
+            P = processing
+            B = busy
+        """
+        reqs = self.session.get(
+            f"{self.base_url}/rr_model",
+            params={"key": "state.status"},
+            timeout=5
+        )
+        reqs.raise_for_status()
+        return reqs.json()["result"]
     
     # def send_gcode(self, command, homing = False):
     #     """
@@ -161,26 +190,26 @@ class Gantry:
     #         reponse = self._handle.recv(1024).decode("utf-8").strip()
     #     return response
 
-    def send_gcode(self, command, homing = False):
-        """
-        Send a G-code command to the Duet over the given socket.
-        Return the response string.
-        """
-        if not self._handle:
-            raise ValueError("Socket is not connected, be sure to run Gantry().connect() first!")
-        # print("im still running")
-        self._handle.sendall((command + "\n").encode("utf-8"))
-        if not self.__done_connecting:
-            homing = False
-        if homing:
-            self._handle.settimeout(None)
-            response_0 = self._handle.recv(1024).decode("utf-8")
-            response = response_0.split()
-            self._handle.settimeout(30)
-        else:
-            response = self._handle.recv(1024).decode("utf-8").strip()
-            response_0 = None
-        return response_0, response
+    # def send_gcode(self, command, homing = False):
+    #     """
+    #     Send a G-code command to the Duet over the given socket.
+    #     Return the response string.
+    #     """
+    #     if not self._handle:
+    #         raise ValueError("Socket is not connected, be sure to run Gantry().connect() first!")
+    #     # print("im still running")
+    #     self._handle.sendall((command + "\n").encode("utf-8"))
+    #     if not self.__done_connecting:
+    #         homing = False
+    #     if homing:
+    #         self._handle.settimeout(None)
+    #         response_0 = self._handle.recv(1024).decode("utf-8")
+    #         response = response_0.split()
+    #         self._handle.settimeout(30)
+    #     else:
+    #         response = self._handle.recv(1024).decode("utf-8").strip()
+    #         response_0 = None
+    #     return response_0, response
 
     def disconnect(self):
         self._handle.close()
@@ -236,8 +265,8 @@ class Gantry:
 
     def write(self, msg):
         # print("cool thing: {self._ethernet})")
-        if self._ethernet:
-            output = [self.send_gcode(msg, homing = True)]
+        if self._wifi:
+            output = [self.send_gcode(msg)]
         else:
             self._handle.write(f"{msg}\n".encode())
             time.sleep(self.POLLINGDELAY)
@@ -257,26 +286,41 @@ class Gantry:
 
     def update(self):
         print("UPDATING:")
-        found_coordinates = False
-        while not found_coordinates:
-            output = self.write("M114")  # get current position
-            print("\t", output)
-            print("\t", type(output))
-            print("\t", len(output))
-            output, output2 = output[0]
-            if output is None:
-                output = output2
-            if isinstance(output, str):
-                output = [output]
-            for line in output:
-                print(line)
-                if line.startswith("X:"):
-                    x = float(re.findall(r"X:(\S*)", line)[0])
-                    y = float(re.findall(r"Y:(\S*)", line)[0])
-                    z = float(re.findall(r"Z:(\S*)", line)[0])
-                    found_coordinates = True
-                    # print(f'Home is @ [{x}, {y}, {z}]')
-                    break
+        if self._wifi:
+            reqs = self.session.get(
+                f"{self.base_url}/rr_model",
+                params = {"key": "move.axes"},
+                timeout = 5
+            )
+            reqs.raise_for_status()
+            axes = reqs.json()["result"]
+            pos = {}
+            for axis in axes:
+                pos[axis["letter"]] = axis["machinePosition"]
+            x = pos["X"]
+            y = pos["Y"]
+            z = pos["Z"]
+        else:
+            found_coordinates = False
+            while not found_coordinates:
+                output = self.write("M114")  # get current position
+                print("\t", output)
+                print("\t", type(output))
+                print("\t", len(output))
+                output, output2 = output[0]
+                if output is None:
+                    output = output2
+                if isinstance(output, str):
+                    output = [output]
+                for line in output:
+                    print(line)
+                    if line.startswith("X:"):
+                        x = float(re.findall(r"X:(\S*)", line)[0])
+                        y = float(re.findall(r"Y:(\S*)", line)[0])
+                        z = float(re.findall(r"Z:(\S*)", line)[0])
+                        found_coordinates = True
+                        # print(f'Home is @ [{x}, {y}, {z}]')
+                        break
         self.position = [
             round(x, 1), round(y,1), round(z,1)]
         self.__currentframe = self._target_frame(*self.position)
@@ -423,7 +467,13 @@ class Gantry:
         self.moveto(x, y, z, zhop, speed)
 
     def _ready_to_talk(self):
-        if self._ethernet:
+        if self._wifi:
+            state = self.get_staus()
+            if state == "I":
+                return True
+            else:
+                return False
+        elif self._ethernet:
             return True
         else:
             return self._handle.in_waiting
@@ -444,8 +494,9 @@ class Gantry:
         else:
             if m400 is True:
                 self.write("M400")
-        
-        if self._ethernet:
+        if self._wifi:
+            pass
+        elif self._ethernet:
             echo_command = 'M118 S"FinishedMoving"'
             self._handle.sendall((echo_command + "\n").encode("utf-8"))
         else:
