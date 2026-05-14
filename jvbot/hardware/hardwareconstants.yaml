@@ -38,7 +38,7 @@ gantry:
       z_min: 0
   wifi_connection: # Duet 3 Mini 5+ WiFi mode
     device_identifiers:
-      ip: 192.168.0.100
+      ip: 192.168.137.26
     pollingrate: 0.05 # delay (s) between sending a command and reading the response
     timeout: 15 # max time (s) allotted to gantry motion before flaggin a movement error
     positiontolerance: 0.05 # tolerance (mm) of a given motion to be considered complete

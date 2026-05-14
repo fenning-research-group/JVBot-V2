@@ -24,16 +24,17 @@ with open(os.path.join(MODULE_DIR, "hardwareconstants.yaml"), "r") as f:
 class Gantry:
     def __init__(self, port=None, ip=None, duet_port=None):
         # communication variables
-        if port is None:
-            self.port = get_port(constants["gantry"]["device_identifiers"])
-            print(self.port, "if") ## added comment
+        # if port is None:
+            # self.port = get_port(constants["gantry"]["serial_connection"]["device_identifiers"])
+            # print(self.port, "if") ## added comment
         else:
             self.port = port
             print(port, "else") ## added comment
         if ip is None:
-            ip = constants["gantry"]["device_identifiers"]["duet_ip"]
+            ip = constants["gantry"]["wifi_connection"]["device_identifiers"]["ip"]
+            password = input("Password (hint: PASCAL PC) for connecting to the Duet board:")
         if duet_port is None:
-            duet_port = constants["gantry"]["device_identifiers"]["duet_port"]
+            duet_port = constants["gantry"]["websocket_connection"]["device_identifiers"]["duet_port"]
         self.ip = ip
         print(self.ip)
         self.duet_port = duet_port
