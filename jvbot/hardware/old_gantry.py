@@ -75,11 +75,13 @@ class Gantry:
     # communication methods
     def connect(self, password, response = None):
         if response is None:
-            response = input("Is the Gantry using a Duet Board? (y/n)")
+            response = input("Is the Gantry using a WiFi Duet Board? (y/n)")
             # self._ethernet = response in ["y", "Y"]
-            self._wifi = response in ["y", "Y"]
-            self._ethernet = False
+            self._wifi = response not in ["y", "Y"]
+            self._ethernet = True
+        self.connect_ethernet()
         self.connect_wifi(password)
+        # self.connect_wifi2(password)
         self.update()
         if self.position == [
             self.__OVERALL_LIMS["x_max"],
@@ -152,13 +154,14 @@ class Gantry:
         data = reqs.json()
         if data.get("err", 1) != 0:
             raise RuntimeError("Failed to authenticate")
-    def send_gcode(self, command):
-        reqs = self.session.get(
-            f"{self.base_url}/rr_gcode",
-            params = {"gcode": command},
-            timeout = 10,
-        )
-        reqs.raise_for_status()
+
+    # def send_gcode(self, command):
+    #     reqs = self.session.get(
+    #         f"{self.base_url}/rr_gcode",
+    #         params = {"gcode": command},
+    #         timeout = 10,
+    #     )
+    #     reqs.raise_for_status()
     def get_status(self):
         """Return the Duet board machine state:
             I = idle
@@ -189,26 +192,26 @@ class Gantry:
     #         reponse = self._handle.recv(1024).decode("utf-8").strip()
     #     return response
 
-    # def send_gcode(self, command, homing = False):
-    #     """
-    #     Send a G-code command to the Duet over the given socket.
-    #     Return the response string.
-    #     """
-    #     if not self._handle:
-    #         raise ValueError("Socket is not connected, be sure to run Gantry().connect() first!")
-    #     # print("im still running")
-    #     self._handle.sendall((command + "\n").encode("utf-8"))
-    #     if not self.__done_connecting:
-    #         homing = False
-    #     if homing:
-    #         self._handle.settimeout(None)
-    #         response_0 = self._handle.recv(1024).decode("utf-8")
-    #         response = response_0.split()
-    #         self._handle.settimeout(30)
-    #     else:
-    #         response = self._handle.recv(1024).decode("utf-8").strip()
-    #         response_0 = None
-    #     return response_0, response
+    def send_gcode(self, command, homing = False):
+        """
+        Send a G-code command to the Duet over the given socket.
+        Return the response string.
+        """
+        if not self._handle:
+            raise ValueError("Socket is not connected, be sure to run Gantry().connect() first!")
+        # print("im still running")
+        self._handle.sendall((command + "\n").encode("utf-8"))
+        if not self.__done_connecting:
+            homing = False
+        if homing:
+            self._handle.settimeout(None)
+            response_0 = self._handle.recv(1024).decode("utf-8")
+            response = response_0.split()
+            self._handle.settimeout(30)
+        else:
+            response = self._handle.recv(1024).decode("utf-8").strip()
+            response_0 = None
+        return response_0, response
 
     def disconnect(self):
         if self._wifi:
@@ -248,21 +251,21 @@ class Gantry:
         elif self._ethernet:
             self.write("M501")  # load defaults from EEPROM
             self.write("G90")  # absolute coordinate system
-            self.write(
-                "M92 X53.0 Y53.0 Z3200.0"
-            )  # feedrate steps/mm, randomly resets to defaults sometimes idk why
-            self.write(
-                "M201 X250.0 Y250.0 Z10.0"
-            )  # acceleration steps/mm/mm, randomly resets to defaults sometimes idk why
-            self.write(
-                "M906 X580 Y580 Z25 E1"
-            )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
+            # self.write(
+            #     "M92 X53.0 Y53.0 Z3200.0"
+            # )  # feedrate steps/mm, randomly resets to defaults sometimes idk why
+            # self.write(
+            #     "M201 X250.0 Y250.0 Z10.0"
+            # )  # acceleration steps/mm/mm, randomly resets to defaults sometimes idk why
+            # self.write(
+            #     "M906 X580 Y580 Z25 E1"
+            # )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
             self.write(
                 "M84 S0"
             )  # disable stepper timeout, steppers remain engaged all the time
-            self.write(
-                f"M203 X50 Y50 Z1.00"
-            )  # set max speeds, steps/mm. Z is hardcoded, limited by lead screw hardware.
+            # self.write(
+            #     f"M203 X50 Y50 Z1.00"
+            # )  # set max speeds, steps/mm. Z is hardcoded, limited by lead screw hardware.
                 # self.write(
                     # f"M203 X{self.MAXSPEED} Y{self.MAXSPEED} Z{30}"
                 # )
