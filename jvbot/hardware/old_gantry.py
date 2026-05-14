@@ -10,6 +10,7 @@ import os
 import subprocess
 import serial
 import socket
+import requests
 import select
 # from PyQt5.QtCore.Qt import AlignHCenter
 from functools import partial
@@ -37,14 +38,16 @@ class Gantry:
             duet_port = constants["gantry"]["websocket_connection"]["device_identifiers"]["duet_port"]
         self.ip = ip
         print(self.ip)
+        self.base_url = f"http://{ip}"
+        self.session = requests.Session()
         self.duet_port = duet_port
-        self.POLLINGDELAY = constants["gantry"][
+        self.POLLINGDELAY = constants["gantry"]["wifi_connection"][
             "pollingrate"
         ]  # delay between sending a command and reading a response, in seconds
         self.inmotion = False
         self._connected_network_devices = {}
         # gantry variables
-        self.LOAD_COORDINATES = constants["gantry"]["load_coordinates"]
+        self.LOAD_COORDINATES = constants["gantry"]["wifi_connection"]["load_coordinates"]
 
         self.position = [
             None,
@@ -52,16 +55,16 @@ class Gantry:
             None,
         ]  # start at None's to indicate stage has not been homed.
         self.__targetposition = [None, None, None]
-        self.GANTRYTIMEOUT = constants["gantry"][
+        self.GANTRYTIMEOUT = constants["gantry"]["wifi_connection"][
             "timeout"
         ]  # max time allotted to gantry motion before flagging an error, in seconds
-        self.POSITIONTOLERANCE = constants["gantry"][
+        self.POSITIONTOLERANCE = constants["gantry"]["wifi_connection"][
             "positiontolerance"
         ]  # tolerance for position, in mm
-        self.MAXSPEED = constants["gantry"]["speed_max"]  # mm/min
-        self.MINSPEED = constants["gantry"]["speed_min"]  # mm/min
+        self.MAXSPEED = constants["gantry"]["wifi_connection"]["speed_max"]  # mm/min
+        self.MINSPEED = constants["gantry"]["wifi_connection"]["speed_min"]  # mm/min
         self.speed = self.MAXSPEED  # mm/min, default speed
-        self.ZHOP_HEIGHT = constants["gantry"][
+        self.ZHOP_HEIGHT = constants["gantry"]["wifi_connection"][
             "zhop_height"
         ]  # mm above endpoints to move to in between points
         self.__done_connecting = False
@@ -70,13 +73,13 @@ class Gantry:
         print("gantry connected")
 
     # communication methods
-    def connect(self, response = None):
+    def connect(self, password, response = None):
         if response is None:
             response = input("Is the Gantry using a Duet Board? (y/n)")
             # self._ethernet = response in ["y", "Y"]
             self._wifi = response in ["y", "Y"]
             self._ethernet = False
-        self.connect_wifi()
+        self.connect_wifi(password)
         self.update()
         if self.position == [
             self.__OVERALL_LIMS["x_max"],
