@@ -15,6 +15,7 @@ import select
 # from PyQt5.QtCore.Qt import AlignHCenter
 from functools import partial
 from frgpascal.hardware.helpers import get_port
+import json
 
 
 MODULE_DIR = os.path.dirname(__file__)
@@ -34,6 +35,7 @@ class Gantry:
         if ip is None:
             ip = constants["gantry"]["wifi_connection"]["device_identifiers"]["ip"]
             password = input("Password (hint: PASCAL PC) for connecting to the Duet board:")
+            self.__password = password
         if duet_port is None:
             duet_port = constants["gantry"]["websocket_connection"]["device_identifiers"]["duet_port"]
         self.ip = ip
@@ -67,6 +69,7 @@ class Gantry:
         self.ZHOP_HEIGHT = constants["gantry"]["wifi_connection"][
             "zhop_height"
         ]  # mm above endpoints to move to in between points
+        self.__OVERALL_LIMS = constants["gantry"]["wifi_connection"]["tray_limits"]
         self.__done_connecting = False
         self.connect(password = password)  # connect by default
         self.in_use = True
@@ -145,6 +148,9 @@ class Gantry:
         except Exception as e:
             raise ValueError(f"Failed to connect to Duet at {self.ip}:{port}! \n{e}")
     def connect_wifi(self, password):
+        if self.session is None:
+            self.session = requests.Session()
+        
         reqs = self.session.get(
             f"{self.base_url}/rr_connect",
             params = {"password": password},
@@ -200,7 +206,10 @@ class Gantry:
         if not self._handle:
             raise ValueError("Socket is not connected, be sure to run Gantry().connect() first!")
         # print("im still running")
-        self._handle.sendall((command + "\n").encode("utf-8"))
+        self._handle.sendall((f"{command}" + "\n").encode("utf-8"))
+        # self._handle.sendall((f"P{self.__password}|{command}" + "\n").encode("utf-8"))
+        # j = json.dumps({"password": self.__password, "command": command}).encode()
+        # self._handle.send(j)
         if not self.__done_connecting:
             homing = False
         if homing:
@@ -214,52 +223,55 @@ class Gantry:
         return response_0, response
 
     def disconnect(self):
-        if self._wifi:
-            try:
-                self.session.get(
-                    f"{self.base_url}/rr_disconnect",
-                    timeout = 3
-                )
-            except Exception:
-                pass
-            self.session.close()
-            del self.session
-        else:
-            self._handle.close()
-            del self._handle
+        # if self._wifi:
+        #     try:
+        #         self.session.get(
+        #             f"{self.base_url}/rr_disconnect",
+        #             timeout = 3
+        #         )
+        #     except Exception:
+        #         pass
+        #     self.session.close()
+        #     del self.session
+        
+        self._handle.close()
+        del self._handle
 
     def set_defaults(self):
         if self._wifi:
             self.write("M501")  # load defaults from EEPROM
             self.write("G90")  # absolute coordinate system
-            self.write(
-                "M92 X53.0 Y53.0 Z3200.0"
-            )  # feedrate steps/mm, randomly resets to defaults sometimes idk why
-            self.write(
-                "M201 X250.0 Y250.0 Z10.0"
-            )  # acceleration steps/mm/mm, randomly resets to defaults sometimes idk why
-            self.write(
-                "M906 X580 Y580 Z25"
-            )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
+            # self.write(
+                # "M92 X53.0 Y53.0 Z3200.0"
+            # )  # feedrate steps/mm, randomly resets to defaults sometimes idk why
+            # self.write(
+            #     "M201 X250.0 Y250.0 Z10.0"
+            # )  # acceleration steps/mm/mm, randomly resets to defaults sometimes idk why
+            # self.write(
+            #     "M906 X580 Y580 Z25"
+            # )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
             self.write(
                 "M84 S0"
             )  # disable stepper timeout, steppers remain engaged all the time
-            self.write(
-                f"M203 X50 Y50 Z1.00"
-            )  # set max speeds, steps/mm. Z is hardcoded, limited by lead screw hardware.
+            # self.write(
+            #     f"M203 X50 Y50 Z1.00"
+            # )  # set max speeds, steps/mm. Z is hardcoded, limited by lead screw hardware.
 
         elif self._ethernet:
             self.write("M501")  # load defaults from EEPROM
             self.write("G90")  # absolute coordinate system
+            self.write("M92 Z3200.0") # overwrite steps/mm for Z-axis?
+            self.write("M203 Z60")
+            self.write("M201 Z10.0")
             # self.write(
             #     "M92 X53.0 Y53.0 Z3200.0"
             # )  # feedrate steps/mm, randomly resets to defaults sometimes idk why
             # self.write(
             #     "M201 X250.0 Y250.0 Z10.0"
             # )  # acceleration steps/mm/mm, randomly resets to defaults sometimes idk why
-            # self.write(
-            #     "M906 X580 Y580 Z25 E1"
-            # )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
+            self.write(
+                "M906 X580 Y580 Z25"
+            )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
             self.write(
                 "M84 S0"
             )  # disable stepper timeout, steppers remain engaged all the time
@@ -295,10 +307,10 @@ class Gantry:
             )  # set max speeds, steps/mm. Z is hardcoded, limited by lead screw hardware.
         self.set_speed_percentage(80)  # set speed to 80% of max
 
-    def write(self, msg):
+    def write(self, msg, homing = False):
         # print("cool thing: {self._ethernet})")
-        if self._wifi:
-            output = [self.send_gcode(msg)]
+        if self._wifi or self._ethernet:
+            output = [self.send_gcode(msg, homing = homing)]
         else:
             self._handle.write(f"{msg}\n".encode())
             time.sleep(self.POLLINGDELAY)
@@ -318,50 +330,49 @@ class Gantry:
 
     def update(self):
         print("UPDATING:")
-        if self._wifi:
-            reqs = self.session.get(
-                f"{self.base_url}/rr_model",
-                params = {"key": "move.axes"},
-                timeout = 5
-            )
-            reqs.raise_for_status()
-            axes = reqs.json()["result"]
-            pos = {}
-            for axis in axes:
-                pos[axis["letter"]] = axis["machinePosition"]
-            x = pos["X"]
-            y = pos["Y"]
-            z = pos["Z"]
-        else:
-            found_coordinates = False
-            while not found_coordinates:
-                output = self.write("M114")  # get current position
-                print("\t", output)
-                print("\t", type(output))
-                print("\t", len(output))
-                output, output2 = output[0]
-                if output is None:
-                    output = output2
-                if isinstance(output, str):
-                    output = [output]
-                for line in output:
-                    print(line)
-                    if line.startswith("X:"):
-                        x = float(re.findall(r"X:(\S*)", line)[0])
-                        y = float(re.findall(r"Y:(\S*)", line)[0])
-                        z = float(re.findall(r"Z:(\S*)", line)[0])
-                        found_coordinates = True
-                        # print(f'Home is @ [{x}, {y}, {z}]')
-                        break
+        # if self._wifi:
+        #     reqs = self.session.get(
+        #         f"{self.base_url}/rr_model",
+        #         params = {"key": "move.axes"},
+        #         timeout = 5
+        #     )
+        #     reqs.raise_for_status()
+        #     axes = reqs.json()["result"]
+        #     pos = {}
+        #     for axis in axes:
+        #         pos[axis["letter"]] = axis["machinePosition"]
+        #     x = pos["X"]
+        #     y = pos["Y"]
+        #     z = pos["Z"]
+        found_coordinates = False
+        while not found_coordinates:
+            output = self.write("M114")  # get current position
+            print("\t", output)
+            print("\t", type(output))
+            print("\t", len(output))
+            output, output2 = output[0]
+            if output is None:
+                output = output2
+            if isinstance(output, str):
+                output = [output]
+            for line in output:
+                print(line)
+                if line.startswith("X:"):
+                    x = float(re.findall(r"X:(\S*)", line)[0])
+                    y = float(re.findall(r"Y:(\S*)", line)[0])
+                    z = float(re.findall(r"Z:(\S*)", line)[0])
+                    found_coordinates = True
+                    # print(f'Home is @ [{x}, {y}, {z}]')
+                    break
         self.position = [
             round(x, 1), round(y,1), round(z,1)]
-        self.__ZLIM = constants["wifi_connection"]["tray_limits"]["z_max"]
+        self.__ZLIM = constants["gantry"]["wifi_connection"]["tray_limits"]["z_max"]
         
         # self.__ZLIM = (
         #         self.__FRAMES["opentrons"]["z_max"] - 3
         #     )  
         # if self.servoangle > self.MINANGLE:
-        self.__gripper_last_opened = time.time()
+        # self.__gripper_last_opened = time.time()
 
     # gantry methods
     def set_speed_percentage(self, p):
@@ -373,9 +384,9 @@ class Gantry:
 
     def gohome(self):
         # self.movetoclear()
-        self.write("G28 Z")
+        self.write("G28 Z", homing = True)
         self.update()
-        self.write("G28 X Y")
+        self.write("G28 X Y", homing = True)
         self.update()
         self.movetoload()
 
@@ -462,13 +473,13 @@ class Gantry:
         self.moveto(x, y, z, zhop, speed)
 
     def _ready_to_talk(self):
-        if self._wifi:
-            state = self.get_staus()
-            if state == "I":
-                return True
-            else:
-                return False
-        elif self._ethernet:
+        # if self._wifi:
+        #     state = self.get_status()
+        #     if state == "I":
+        #         return True
+        #     else:
+        #         return False
+        if self._ethernet:
             return True
         else:
             return self._handle.in_waiting
@@ -486,9 +497,9 @@ class Gantry:
         time_elapsed = time.time() - start_time
         self.write("M400")
         
-        if self._wifi:
-            pass
-        elif self._ethernet:
+        # if self._wifi:
+            # pass
+        if self._ethernet:
             echo_command = 'M118 S"FinishedMoving"'
             self._handle.sendall((echo_command + "\n").encode("utf-8"))
         else:
@@ -502,9 +513,9 @@ class Gantry:
             yapping = self._ready_to_talk()
             while yapping:
                 print("Ready to talk")
-                if self._wifi:
-                    pass
-                elif self._ethernet:
+                # if self._wifi:
+                    # pass
+                if self._ethernet:
                     self._handle.settimeout(None)
                     line = self._handle.recv(1024).decode("utf-8").strip()
                     # print(line)
