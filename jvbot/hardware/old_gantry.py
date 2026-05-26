@@ -712,3 +712,7 @@ class GantryGUI:
         # self.app.exit()
         # sys.exit(self.app.quit())
         return
+# motor black = A+ = board green
+# motor red = B+ = board red
+# motor blue = B- = board blue
+# motor green = A- = board yellow

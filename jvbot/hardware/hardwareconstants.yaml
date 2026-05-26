@@ -44,8 +44,8 @@ gantry:
     positiontolerance: 0.05 # tolerance (mm) of a given motion to be considered complete
     speed_max: 100000 # max gantry speed (mm/min)
     speed_min: 500 # min gantry speed (mm/min)
-    zhop_height: 15 #vertical clearance (mm) to use when moving between two points. Will move this amount above the highest z point.
-    load_coordinates: [0, 40, 50] # coordinates of tray loading
+    zhop_height: 30 #vertical clearance (mm) to use when moving between two points. Will move this amount above the highest z point.
+    load_coordinates: [0, 40, 70] # coordinates of tray loading
     tray_limits: # max motion of the measurement probe.
       x_max: 170
       x_min: -25
