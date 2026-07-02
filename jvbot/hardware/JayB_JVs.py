@@ -9,7 +9,8 @@ from frghardware.keithleyjv import control3
 
 class JayBJVs:
     """Execution:
-
+    >>> conda activate jvbot2
+    >>> ipython
     >>> from jvbot.hardware.JayB_JVs import JayBJVs
     >>> jb = JayBJVs(BASE_DIR = r'C:\JV Data\JayB')
     >>> jb.run_single_scan("[0605]_[0604]_Set6_Pbcl24%_S2", vsteps = 100, pixel = "P4")

@@ -24,8 +24,9 @@ AVAILABLE_VERSIONS = {
 }
 
 from .hardware.gantry import Gantry
-from .hardware.control5 import Control_Keithley
-from .hardware.tray import Tray
+from .hardware.light_JV_legacy import Control_Keithley as OldControl
+from .hardware.control5 import Control_Keithley as DarkJVScanRatesControl
+from .hardware.tray_legacy import Tray
 
 class JVControl:
     def __init__(self, area = 0.048, Eric_Opt = None):
@@ -33,9 +34,9 @@ class JVControl:
         if Eric_Opt is None:
             response = self._prompt_for_input("Do you want to use Eric's Scan-Rate Sweeps or Dark JV's? (y/n)")
             if response in ['y', 'Y']:
-                self.control_keithley = Control_Keithley(area = self.area, ScanRateDarkJV = True)
+                self.control_keithley = DarkJVScanRatesControl(area = self.area, ScanRateDarkJV = True)
             else:
-                self.control_keithley = Control_Keithley(area = self.area, ScanRateDarkJV = False)
+                self.control_keithley = OldControl(area = self.area, ScanRateDarkJV = False)
         self.gantry = Gantry()
     
     def _prompt_for_input(self, s):

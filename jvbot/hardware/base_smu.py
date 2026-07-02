@@ -33,7 +33,7 @@ class KeithleyConfig(BaseConstantsConfig):
     address : str, optional
         the networking address of the keithley, by default "GPIB0::22::INSTR"
     """
-    area: float = 0.048
+    area: float = 0.048 # cm^2
     wires: int = 4
     compliance_current: float = 1.05 # A
     compliance_voltage: float = 2 # V
@@ -44,6 +44,7 @@ class KeithleyConfig(BaseConstantsConfig):
     _resistance_nplc: int = 1
     _source_delay: float = 0.001 # seconds
     _address: str = "GPIB0::22::INSTR"
+    # _delay: 
 
 
 class BaseSMU(ABC):
