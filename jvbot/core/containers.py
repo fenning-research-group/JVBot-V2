@@ -11,7 +11,7 @@ class BaseConstantsConfig(ABC):
             if not isinstance(field.default, _MISSING_TYPE) and getattr(self, field.name) is None:
                 setattr(self, field.name, field.default)
 
-@dataclass(frozen = True)
+@dataclass
 class ProtocolMetadataConfig(BaseConstantsConfig):
     name: str
     author: Union[str, List[str]]
@@ -21,7 +21,7 @@ class ProtocolMetadataConfig(BaseConstantsConfig):
     protocol_class: Type[Any] # execute some measurement protocol
     formatter_class: Type[Any] # save data, plot data
     tags: List[str] = field(default_factory = list)
-    source_code: str
+    source_code: str = ""
     additional_notes: Optional[str] = None
 
     def __str__(self):

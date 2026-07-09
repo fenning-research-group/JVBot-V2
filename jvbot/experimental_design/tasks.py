@@ -2,6 +2,7 @@
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
 from ..hardware.base_config import BaseConstantsConfig
+import numpy as np
 
 @dataclass
 class MeasurementConfig(BaseConstantsConfig):
@@ -23,9 +24,3 @@ class BaseJVProtocol(ABC):
     def get_ready_to_measure(self):
         """Depending on the JVProtocol, prepare the source measure unit to get up and go."""
         pass
-
-    # @abstractmethod
-    # def 
-
-
-
