@@ -255,23 +255,34 @@ class Worker_Measurement(WorkerTemplate):
             ),
         }
 
+    def _move_to_sample(self, sample, details):
+        slot = None
+        if isinstance(sample, dict):
+            slot = sample.get("slot")
+        if slot is None and details:
+            slot = details.get("slot")
+
+        if slot is not None:
+            if hasattr(self.maestro, "move_to_slot"):
+                self.maestro.move_to_slot(slot)
+
     def jv_sweep(self, sample, details):
-        pass
+        self._move_to_sample(sample, details)
 
     def voc_direct(self, sample, details):
-        pass
+        self._move_to_sample(sample, details)
 
     def voc_buffered(self, sample, details):
-        pass
+        self._move_to_sample(sample, details)
 
     def jsc_direct(self, sample, details):
-        pass
+        self._move_to_sample(sample, details)
 
     def jsc_buffered(self, sample, details):
-        pass
+        self._move_to_sample(sample, details)
 
     def spo_buffered(self, sample, details):
-        pass
+        self._move_to_sample(sample, details)
 
 
 class Worker_SolarSim(WorkerTemplate):

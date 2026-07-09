@@ -219,6 +219,15 @@ class Maestro:
         for worker in self.workers.values():
             worker.start()
 
+    def move_to_slot(self, slot):
+        """Move the gantry probe head to the specified sample slot on the tray."""
+        if self.tray is not None and self.gantry is not None:
+            coords = self.tray(slot)
+            self.logger.info(f"Moving probe head to slot '{slot}' (coords: {coords})")
+            self.gantry.moveto(coords)
+        else:
+            self.logger.warning(f"Gantry or Tray not configured. Cannot move to slot '{slot}'.")
+
     def stop(self):
         print('Beginning to stop JVBot')
         self.working = False
