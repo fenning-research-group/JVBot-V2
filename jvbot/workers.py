@@ -4,6 +4,14 @@ from collections import namedtuple
 from roboflo import Worker as Worker_roboflo
 import os
 import sys
+import dataclasses
+
+from jvbot.measurement_methods.jv_sweep import JVSweepConfig, JVSweepExecutor, JVSweepFormatter
+from jvbot.measurement_methods.voc_direct import VocDirectConfig, VocDirectExecutor, VocDirectFormatter
+from jvbot.measurement_methods.voc_buffered import VocBufferedConfig, VocBufferedExecutor, VocBufferedFormatter
+from jvbot.measurement_methods.jsc_direct import JscDirectConfig, JscDirectExecutor, JscDirectFormatter
+from jvbot.measurement_methods.jsc_buffered import JscBufferedConfig, JscBufferedExecutor, JscBufferedFormatter
+from jvbot.measurement_methods.spo_buffered import SpoBufferedConfig, SpoBufferedExecutor, SpoBufferedFormatter
 
 task_tuple = namedtuple("task", ["function", "estimated_duration", "other_workers"])
 
@@ -15,6 +23,7 @@ class WorkerTemplate(Worker_roboflo):
         self.maestro = maestro
         self.working = False
         self.logger = logging.getLogger("JVBot")
+        self.POLLINGRATE = 0.1  # seconds
         super().__init__(name=name, capacity=capacity)
 
     def prime(self, loop):
@@ -144,7 +153,6 @@ class WorkerTemplate(Worker_roboflo):
             self.logger.info(f"executing {task_description}")
             if hasattr(self, "worker_logger") and self.worker_logger:
                 self.worker_logger.info(f"[START] {msg_start}")
-            self.maestro.log_sample_event(sample["name"], msg_start)
 
             try:
                 if asyncio.iscoroutinefunction(function):
@@ -169,14 +177,12 @@ class WorkerTemplate(Worker_roboflo):
                 msg_finish = f"Finished task '{task['name']}'"
                 if hasattr(self, "worker_logger") and self.worker_logger:
                     self.worker_logger.info(f"[FINISHED] {msg_finish}")
-                self.maestro.log_sample_event(sample["name"], msg_finish)
 
             except Exception as e:
                 self.logger.exception(f"Exception in task {task_description}")
                 err_msg = f"Failed task '{task['name']}' with error: {e}"
                 if hasattr(self, "worker_logger") and self.worker_logger:
                     self.worker_logger.error(f"[ERROR] {err_msg}")
-                self.maestro.log_sample_event(sample["name"], err_msg)
                 output_dict = {"status": "error", "error": str(e)}
 
             if output_dict is None:
@@ -200,8 +206,8 @@ class Worker_Gantry(WorkerTemplate):
     def __init__(self, maestro=None, planning=False):
         super().__init__(name="Gantry", maestro=maestro, planning=planning, capacity=1)
         self.functions = {
-            "moveto": task_tuple(
-                function=self.moveto,
+            "move_to_sample": task_tuple(
+                function=self.move_to_sample,
                 estimated_duration=5,
                 other_workers=[Worker_Measurement],
             ),
@@ -212,8 +218,16 @@ class Worker_Gantry(WorkerTemplate):
             ),
         }
 
-    def moveto(self, sample, details):
-        pass
+    def move_to_sample(self, sample, details):
+        slot = None
+        if isinstance(sample, dict):
+            slot = sample.get("slot")
+        if slot is None and details:
+            slot = details.get("slot")
+
+        if slot is not None:
+            if hasattr(self.maestro, "move_to_slot"):
+                self.maestro.move_to_slot(slot)
 
     def gohome(self, sample, details):
         pass
@@ -255,34 +269,173 @@ class Worker_Measurement(WorkerTemplate):
             ),
         }
 
-    def _move_to_sample(self, sample, details):
-        slot = None
-        if isinstance(sample, dict):
-            slot = sample.get("slot")
-        if slot is None and details:
-            slot = details.get("slot")
-
-        if slot is not None:
-            if hasattr(self.maestro, "move_to_slot"):
-                self.maestro.move_to_slot(slot)
-
     def jv_sweep(self, sample, details):
-        self._move_to_sample(sample, details)
+        # config
+        config_kwargs = details.copy()
+        config_kwargs["name"] = sample.get("name", sample) if isinstance(sample, dict) else str(sample)
+        try:
+            config = JVSweepConfig(**config_kwargs)
+        except TypeError as e:
+            raise ValueError(
+                f"Unexpected parameters passed to JVSweepConfig. "
+                f"Original error: {e}. Please check your worklist data format."
+            )
+        config.validate()
+
+        instrument = getattr(self.maestro, "instrument", getattr(self.maestro, "control_keithley", None))
+        if not instrument:
+            self.logger.warning("No instrument/control_keithley found on maestro. Skipping jv_sweep execution.")
+            return None
+
+        # execute
+        executor = JVSweepExecutor()
+        executor.setup_hardware(config, instrument)
+        data = executor.run_measurement(config, instrument)
+        executor.teardown_hardware(config, instrument)
+
+        # format
+        JVSweepFormatter.format_and_save(data, config, instrument)
+        return data
 
     def voc_direct(self, sample, details):
-        self._move_to_sample(sample, details)
+        # config
+        config_kwargs = details.copy()
+        config_kwargs["name"] = sample.get("name", sample) if isinstance(sample, dict) else str(sample)
+        try:
+            config = VocDirectConfig(**config_kwargs)
+        except TypeError as e:
+            raise ValueError(
+                f"Unexpected parameters passed to VocDirectConfig. "
+                f"Original error: {e}. Please check your worklist data format."
+            )
+        config.validate()
+
+        instrument = getattr(self.maestro, "instrument", getattr(self.maestro, "control_keithley", None))
+        if not instrument:
+            self.logger.warning("No instrument/control_keithley found on maestro. Skipping voc_direct execution.")
+            return None
+        
+        # execute 
+        executor = VocDirectExecutor()
+        executor.setup_hardware(config, instrument)
+        data = executor.run_measurement(config, instrument)
+        executor.teardown_hardware(config, instrument)
+
+        # format
+        VocDirectFormatter.format_and_save(data, config, instrument)
+        return data
 
     def voc_buffered(self, sample, details):
-        self._move_to_sample(sample, details)
+        # config
+        config_kwargs = details.copy()
+        config_kwargs["name"] = sample.get("name", sample) if isinstance(sample, dict) else str(sample)
+        try:
+            config = VocBufferedConfig(**config_kwargs)
+        except TypeError as e:
+            raise ValueError(
+                f"Unexpected parameters passed to VocBufferedConfig. "
+                f"Original error: {e}. Please check your worklist data format."
+            )
+        config.validate()
+
+        instrument = getattr(self.maestro, "instrument", getattr(self.maestro, "control_keithley", None))
+        if not instrument:
+            self.logger.warning("No instrument/control_keithley found on maestro. Skipping voc_buffered execution.")
+            return None
+
+        # execute
+        executor = VocBufferedExecutor()
+        executor.setup_hardware(config, instrument)
+        data = executor.run_measurement(config, instrument)
+        executor.teardown_hardware(config, instrument)
+        
+        # format
+        VocBufferedFormatter.format_and_save(data, config, instrument)
+        return data
 
     def jsc_direct(self, sample, details):
-        self._move_to_sample(sample, details)
+        # config
+        config_kwargs = details.copy()
+        config_kwargs["name"] = sample.get("name", sample) if isinstance(sample, dict) else str(sample)
+        try:
+            config = JscDirectConfig(**config_kwargs)
+        except TypeError as e:
+            raise ValueError(
+                f"Unexpected parameters passed to JscDirectConfig. "
+                f"Original error: {e}. Please check your worklist data format."
+            )
+        config.validate()
+
+        instrument = getattr(self.maestro, "instrument", getattr(self.maestro, "control_keithley", None))
+        if not instrument:
+            self.logger.warning("No instrument/control_keithley found on maestro. Skipping jsc_direct execution.")
+            return None
+
+        # execute
+        executor = JscDirectExecutor()
+        executor.setup_hardware(config, instrument)
+        data = executor.run_measurement(config, instrument)
+        executor.teardown_hardware(config, instrument)
+
+        # format
+        JscDirectFormatter.format_and_save(data, config, instrument)
+        return data
 
     def jsc_buffered(self, sample, details):
-        self._move_to_sample(sample, details)
+        # config
+        config_kwargs = details.copy()
+        config_kwargs["name"] = sample.get("name", sample) if isinstance(sample, dict) else str(sample)
+        try:
+            config = JscBufferedConfig(**config_kwargs)
+        except TypeError as e:
+            raise ValueError(
+                f"Unexpected parameters passed to JscBufferedConfig. "
+                f"Original error: {e}. Please check your worklist data format."
+            )
+        config.validate()
+
+        instrument = getattr(self.maestro, "instrument", getattr(self.maestro, "control_keithley", None))
+        if not instrument:
+            self.logger.warning("No instrument/control_keithley found on maestro. Skipping jsc_buffered execution.")
+            return None
+
+        # execute
+        executor = JscBufferedExecutor()
+        executor.setup_hardware(config, instrument)
+        data = executor.run_measurement(config, instrument)
+        executor.teardown_hardware(config, instrument)
+
+        # format
+        JscBufferedFormatter.format_and_save(data, config, instrument)
+        return data
 
     def spo_buffered(self, sample, details):
-        self._move_to_sample(sample, details)
+        # config
+        config_kwargs = details.copy()
+        config_kwargs["name"] = sample.get("name", sample) if isinstance(sample, dict) else str(sample)
+        try:
+            config = SpoBufferedConfig(**config_kwargs)
+        except TypeError as e:
+            raise ValueError(
+                f"Unexpected parameters passed to SpoBufferedConfig. "
+                f"Original error: {e}. Please check your worklist data format."
+            )
+        config.validate()
+
+        instrument = getattr(self.maestro, "instrument", getattr(self.maestro, "control_keithley", None))
+        if not instrument:
+            self.logger.warning("No instrument/control_keithley found on maestro. Skipping spo_buffered execution.")
+            return None
+
+        # execute
+        executor = SpoBufferedExecutor()
+        executor.setup_hardware(config, instrument)
+        data = executor.run_measurement(config, instrument)
+        executor.teardown_hardware(config, instrument)
+
+        # format
+        SpoBufferedFormatter.format_and_save(data, config, instrument)
+        return data
 
 
 class Worker_SolarSim(WorkerTemplate):

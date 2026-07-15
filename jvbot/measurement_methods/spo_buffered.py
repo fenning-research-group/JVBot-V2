@@ -19,6 +19,7 @@ class SpoBufferedConfig(BaseConstantsConfig):
     area: float = 0.048 # cm2
     printed: bool = True
     preview: bool = True
+    task_id: str = None
 
     def validate(self):
         if self.compliance_current <= 0:

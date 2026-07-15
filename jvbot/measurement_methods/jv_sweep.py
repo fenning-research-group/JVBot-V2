@@ -18,6 +18,7 @@ class JVSweepConfig(BaseConstantsConfig):
     preview: bool = True
     area: float = 0.0448 # cm2
     buffer_points: int = 1
+    task_id: str = None
 
     def validate(self):
         if self.vsteps <= 1:

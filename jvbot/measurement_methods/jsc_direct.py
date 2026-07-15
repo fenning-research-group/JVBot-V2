@@ -12,6 +12,7 @@ class JscDirectConfig(BaseConstantsConfig):
     nplc: float = 1.0
     printed: bool = True
     preview: bool = False
+    task_id: str = None
 
     def validate(self):
         if self.compliance_current <= 0:

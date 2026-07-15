@@ -13,6 +13,7 @@ class VocDirectConfig(BaseConstantsConfig):
     source_delay_auto: bool = False
     printed: bool = True
     preview: bool = False
+    task_id: str = None
 
     def validate(self):
         if self.compliance_voltage <= 0:

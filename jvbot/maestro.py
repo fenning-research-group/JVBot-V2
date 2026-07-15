@@ -224,7 +224,7 @@ class Maestro:
         if self.tray is not None and self.gantry is not None:
             coords = self.tray(slot)
             self.logger.info(f"Moving probe head to slot '{slot}' (coords: {coords})")
-            self.gantry.moveto(coords)
+            self.gantry.moveto(*coords)
         else:
             self.logger.warning(f"Gantry or Tray not configured. Cannot move to slot '{slot}'.")
 

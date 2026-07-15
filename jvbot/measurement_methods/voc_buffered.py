@@ -11,6 +11,7 @@ class VocBufferedConfig(BaseConstantsConfig):
     compliance_voltage: float = 2.0 # V
     printed: bool = True
     preview: bool = False
+    task_id: str = None
 
     def validate(self):
         if self.compliance_voltage <= 0:
