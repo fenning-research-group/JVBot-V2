@@ -1,12 +1,10 @@
 import os
 import yaml
 import numpy as np
-from jvbot.hardware.gantry import Gantry
+from jvbot.hardware.old_gantry import Gantry
 
 MODULE_DIR = os.path.dirname(__file__)
-# print(MODULE_DIR)
-# print(os.listdir(MODULE_DIR))
-TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "versions")
+TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "tray_versions")
 AVAILABLE_VERSIONS = {
     os.path.splitext(f)[0]: os.path.join(TRAY_VERSIONS_DIR, f)
     for f in os.listdir(TRAY_VERSIONS_DIR)

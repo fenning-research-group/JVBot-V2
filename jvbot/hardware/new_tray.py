@@ -4,7 +4,7 @@ from typing import List, Literal
 from jvbot.hardware.gantry import Gantry
 from jvbot.hardware.geometry import Workspace
 MODULE_DIR = os.path.dirname(__file__)
-TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "versions")
+TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "tray_versions")
 AVAILABLE_VERSIONS = {
     os.path.splitext(f)[0]: os.path.join(TRAY_VERSIONS_DIR, f)
     for f in os.listdir(TRAY_VERSIONS_DIR)
@@ -30,6 +30,8 @@ class SampleTray(Workspace):
         p0 = [0, 0, 0],
         sample_size: str = "square_10mm"
     ):
+        print(sample_size)
+        print(get_sizekey(sample_size))
         constants, workspace_kwargs = self._load_version(version, sample_size = get_sizekey(size_str = sample_size))
         super().__init__(
             name = name, gantry = gantry, testslots = testslots, p0=p0, **workspace_kwargs
@@ -56,7 +58,7 @@ class SampleTray(Workspace):
 
 class Tray10mm(SampleTray):
     "Wrapper class with default arguments for the 10mmx10mm single pixel device layout."
-    def __init__(self, version="tray_v1", gantry=None, gripper=None, p0=[0, 0, 0], sample_size: str = Literal["square_10mm", "square_17mm", "square_25.3mm"]):
+    def __init__(self, version="tray_v1", gantry=None, p0=[0, 0, 0], sample_size: str = "square_10mm"):
         super().__init__(
-            name="Tray1", version=version, gantry=gantry, gripper=gripper, p0=p0, testslots = ["I1"], sample_size = sample_size
+            name="Tray10mm", version=version, gantry=gantry, p0=p0, testslots = ["I1"], sample_size = sample_size
         )

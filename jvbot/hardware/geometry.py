@@ -42,7 +42,7 @@ class CoordinateMapper:
     def map(self, p):
         p = np.asarray(p)[:2]
         goal = self.rbf(p[None, :])[0]
-        goal[2] = self.zinterp(p[:2])
+        # goal[2] = self.zinterp(p[:2])
         return self.rbf(p[None, :])[0]
 
 
@@ -178,7 +178,7 @@ class Workspace:
                     yidx * self.pitch[1],
                     0
                 ]
-    def slot_coordinats(self, name):
+    def slot_coordinates(self, name):
         if self.__calibrated == False:
             raise Exception(f"Need to calibrate {self.name} before use!")
         coords = self.transform.map(self._coordinates[name])

@@ -37,7 +37,7 @@ class Gantry:
             password = input("Password (hint: PASCAL PC) for connecting to the Duet board:")
             self.__password = password
         if duet_port is None:
-            duet_port = constants["gantry"]["websocket_connection"]["device_identifiers"]["duet_port"]
+            duet_port = constants["gantry"]["wifi_connection"]["device_identifiers"]["duet_port"]
         self.ip = ip
         print(self.ip)
         self.base_url = f"http://{ip}"
@@ -132,6 +132,7 @@ class Gantry:
                 try:
                     print(f"Trying to connect to Duet at {self.ip}:{port}...")
                     self._handle = socket.create_connection((self.ip, port), timeout = 5)
+                    self._handle.sendall(b"\n")
                     if port == "21":
                         print(f"\tDuet connected over OTHER type connection")
                     elif port == "23":

@@ -6,7 +6,7 @@ from natsort import natsorted
 import csv
 from datetime import datetime
 from tqdm import tqdm
-from frgtools import jv
+# from frgtools import jv
 
 try:
     from typing import Literal
@@ -16,7 +16,7 @@ except:
 
 
 MODULE_DIR = os.path.dirname(__file__)
-TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "tray_versions")
+TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "hardware", "tray_versions")
 AVAILABLE_VERSIONS = {
     os.path.splitext(f)[0]: os.path.join(TRAY_VERSIONS_DIR, f)
     for f in os.listdir(TRAY_VERSIONS_DIR)
@@ -25,9 +25,11 @@ AVAILABLE_VERSIONS = {
 
 from .hardware.old_gantry import Gantry
 from .hardware.light_JV_legacy import Control_Keithley as OldControl
-from .hardware.control5 import Control_Keithley as DarkJVScanRatesControl
+# from .hardware.control5 import Control_Keithley as DarkJVScanRatesControl
 # from .hardware.tray_legacy import Tray
 from .hardware.new_tray import Tray10mm
+from .hardware.control5_legacy import Control_Keithley_Eric as DarkJVScanRatesControl
+from .hardware.tray_legacy import Tray
 
 class JVControl:
     def __init__(self, area = 0.048, Eric_Opt = None):

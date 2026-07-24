@@ -9,11 +9,11 @@ from frghardware.keithleyjv import control3
 
 class JayBJVs:
     """Execution:
-    >>> conda activate jvbot2
-    >>> ipython
-    >>> from jvbot.hardware.JayB_JVs import JayBJVs
-    >>> jb = JayBJVs(BASE_DIR = r'C:\JV Data\JayB')
-    >>> jb.run_single_scan("[0605]_[0604]_Set6_Pbcl24%_S2", vsteps = 100, pixel = "P4")
+    #>>> conda activate jvbot2
+    #>>> ipython
+    #>>> from jvbot.hardware.JayB_JVs import JayBJVs
+    #>>> jb = JayBJVs(BASE_DIR = r'C:\JV Data\JayB')
+    #>>> jb.run_single_scan("[0605]_[0604]_Set6_Pbcl24%_S2", vsteps = 100, pixel = "P4")
     Swap out the pixel keyword argument for any other pixels you scan (P1, P2, P3, etc.).
     """
     def __init__(
@@ -24,11 +24,11 @@ class JayBJVs:
         if folder_name is None:
             folder_name = datetime.now().strftime('%y%m%d')
         if BASE_DIR is None:
-            raise Exception("The `BASE_DIR` should be given of the form r'C:\JV Data\JayB' replacing your user name.")
-        WORKING_DIR = os.path.join(BASE_DIR, folder_name)
-        if not os.path.exists(WORKING_DIR):
-            os.makedirs(WORKING_DIR)
-        os.chdir(WORKING_DIR)
+            raise Exception("The `BASE_DIR` should be given of the form 'C:\\JV Data\\JayB' replacing your user name.")
+        self.WORKING_DIR = os.path.join(BASE_DIR, folder_name)
+        if not os.path.exists(self.WORKING_DIR):
+            os.makedirs(self.WORKING_DIR)
+        os.chdir(self.WORKING_DIR)
         self.c = control3.Control(address = 'GPIB0::22::INSTR')
         self._setup_keithley()
     
@@ -36,7 +36,7 @@ class JayBJVs:
         """Configure Keithley settings with 2x accelerated scan speed parameters."""
         self.c.keithley.current_nplc = 0.05       # Low NPLC for high-speed tracking
         self.c.keithley.compliance_current = 0.1  # Safety threshold (100mA)
-        self.c.keithley.write(":SYST:RSEN OFF")   # Force 2-wire mode
+        self.c.keithley.write(":SYST:RSEN ON")   # Force 4-wire mode
         
         # 2x Speed Up: Internal hardware delay optimized to 20ms
         self.c.keithley.source_delay = 0.02      
@@ -140,7 +140,7 @@ class JayBJVs:
 
     def run_single_scan(self, base_prefix, vmax=1.3, vmin=-0.2, vsteps=100, pixel="P1"):
         """Execute accelerated Reverse-only JV scan exactly once for the specified pixel."""
-        self.setup_keithley() 
+        self._setup_keithley() 
         
         # Combine prefix and pixel to create the full target name (e.g., [260417]_[260416]_PIN_Set1_S1_P1)
         full_target_name = f"{base_prefix}_{pixel}"
