@@ -14,7 +14,7 @@ import requests
 import select
 # from PyQt5.QtCore.Qt import AlignHCenter
 from functools import partial
-from frgpascal.hardware.helpers import get_port
+from jvbot.hardware.helpers import get_port
 import json
 
 

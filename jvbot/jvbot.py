@@ -26,7 +26,8 @@ AVAILABLE_VERSIONS = {
 from .hardware.old_gantry import Gantry
 from .hardware.light_JV_legacy import Control_Keithley as OldControl
 from .hardware.control5 import Control_Keithley as DarkJVScanRatesControl
-from .hardware.tray_legacy import Tray
+# from .hardware.tray_legacy import Tray
+from .hardware.new_tray import Tray10mm
 
 class JVControl:
     def __init__(self, area = 0.048, Eric_Opt = None):
@@ -44,8 +45,8 @@ class JVControl:
         response = input(s)
         return response
     def set_tray(self, version: str, calibrate: bool = False):
-        self.gantry.moveto([55, 24, 30])
-        self.tray = Tray(version = version, gantry = self.gantry, calibrate = calibrate)
+        # self.gantry.moveto([55, 24, 30])
+        self.tray = Tray10mm(version = version, gantry = self.gantry)
     
     def scan_cell(
             self,
