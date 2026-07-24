@@ -1,0 +1,14 @@
+square_10mm:
+  samplewidth: 10   # intended sample width (mm)
+  numx: 5
+  numy: 9
+  offset:
+    x: 147.8 # I5
+    y: 108.2
+    z: 45.0
+  x0: 2.5
+  xpitch: 13.5
+  y0: 148
+  ypitch: 15.65
+  z_clearance: 20
+square_1inch:

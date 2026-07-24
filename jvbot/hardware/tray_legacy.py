@@ -4,7 +4,9 @@ import numpy as np
 from jvbot.hardware.gantry import Gantry
 
 MODULE_DIR = os.path.dirname(__file__)
-TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "..", "tray_versions")
+# print(MODULE_DIR)
+# print(os.listdir(MODULE_DIR))
+TRAY_VERSIONS_DIR = os.path.join(MODULE_DIR, "versions")
 AVAILABLE_VERSIONS = {
     os.path.splitext(f)[0]: os.path.join(TRAY_VERSIONS_DIR, f)
     for f in os.listdir(TRAY_VERSIONS_DIR)
@@ -29,7 +31,7 @@ class Tray:
                 f'Invalid tray version "{version}".\n Available versions are: {list(AVAILABLE_VERSIONS.keys())}.'
             )
         with open(AVAILABLE_VERSIONS[version], "r") as f:
-            constants = yaml.load(f, Loader=yaml.FullLoader)
+            constants = yaml.load(f, Loader=yaml.FullLoader)["square_10mm"]
         self.version = version
         self.pitch = (constants["xpitch"], constants["ypitch"])
         self.gridsize = (constants["numx"], constants["numy"])

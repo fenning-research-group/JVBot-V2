@@ -1,5 +1,5 @@
 from .base_motion import (
-    BTTSKRMiniE3_MotionControl, Duet3Mini5PlusWiFi_MotionControl, 
+    BTTSKRMiniE3_MotionControl, Duet3Mini5PlusEthernet_MotionControl, 
     Duet3Mini5PlusEthernet_MotionControl, SerialCommunicator,
     SocketCommunicator, WiFiCommunicator, FakeCommunicator
 )
@@ -39,7 +39,7 @@ class Gantry:
             Union[
                 BTTSKRMiniE3_MotionControl,
                 Duet3Mini5PlusEthernet_MotionControl,
-                Duet3Mini5PlusWiFi_MotionControl
+                # Duet3Mini5PluEthernet_MotionControl
             ]
         ):
         self.__comms = communicator()

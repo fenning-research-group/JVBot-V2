@@ -851,7 +851,7 @@ def setup_constants(obj_instance, attr_info):
             val
         )
 
-def setup_motion_constants(controller_instance: Union[BaseMotionControl, BTTSKRMiniE3_MotionControl, DiscreteMotionControl, Duet3Mini5Plus_MotionControl]):
+def setup_motion_constants(controller_instance: Union[BaseMotionControl, BTTSKRMiniE3_MotionControl, DiscreteMotionControl, Duet3Mini5PlusEthernet_MotionControl]):
     """
     Scrape the hardware constants for the given controller_instance.
 
@@ -880,7 +880,7 @@ def setup_motion_constants(controller_instance: Union[BaseMotionControl, BTTSKRM
         ("ZHOP_HEIGHT", "zhop_height"),
         # ("in_use", True)
     ]
-    if isinstance(controller_instance, DiscreteMotionControl) or isinstance(controller_instance, Duet3Mini5Plus_MotionControl):
+    if isinstance(controller_instance, DiscreteMotionControl) or isinstance(controller_instance, Duet3Mini5PlusEthernet_MotionControl):
         for axis in ["x", "y", "z"]:
             attr_info.append(
                 (f"grid_spacing_{axis}", {"grid_spacing": f"{axis}_axis"})
