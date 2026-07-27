@@ -24,22 +24,47 @@ class JscDirectExecutor(BaseExecutor):
     
     def setup_hardware(self, config: JscDirectConfig, instrument):
         log_str = f"[{config.name}] Setting up SMU for Current Measuring..."
-        # Configure SMU for voltage sourcing (0 V) and current measuring (control5 style)
-        instrument.keithley.current_nplc = config.nplc
-        instrument.keithley.apply_voltage()
-        instrument.keithley.measure_current()
-        instrument.keithley.source_delay_auto = False
-        instrument.keithley.compliance_current = config.compliance_current
-        instrument.keithley.source_voltage = 0
+        print(f"jsc executor: setting up hardware for {config.name}")
+        try:
+            instrument.keithley.current_nplc = config.nplc
+            print(f"jsc executor: set current_nplc to {config.nplc}")
+            instrument.keithley.apply_voltage()
+            print("jsc executor: applied voltage mode")
+            instrument.keithley.measure_current()
+            print("jsc executor: enabled current measurement")
+            instrument.keithley.source_delay_auto = False
+            instrument.keithley.compliance_current = config.compliance_current
+            print(f"jsc executor: compliance current set to {config.compliance_current}")
+            instrument.keithley.source_voltage = 0
+            print("jsc executor: source voltage set to 0v")
+        except Exception as e:
+            print(f"jsc executor error: setup hardware failed with: {e}")
+            raise e
 
     def _measure(self, config: JscDirectConfig, instrument):
-        return instrument.keithley.read().strip()
+        print("jsc executor: reading from keithley...")
+        raw_val = instrument.keithley.read().strip()
+        print(f"jsc executor: raw value read from keithley: '{raw_val}'")
+        return raw_val
 
     def run_measurement(self, config: JscDirectConfig, instrument) -> dict:
-        instrument.keithley.enable_source()
-        # Direct read method (no buffer, control5 style) using _measure helper
-        isc = -float(self._measure(config=config, instrument=instrument))
-        jsc_val = isc * 1000 / config.area
+        print("jsc executor: enabling keithley source")
+        try:
+            instrument.keithley.enable_source()
+        except Exception as e:
+            print(f"jsc executor error: failed to enable source: {e}")
+            raise e
+            
+        try:
+            raw_measure = self._measure(config=config, instrument=instrument)
+            print(f"jsc executor: parsing raw measurement string to float: '{raw_measure}'")
+            isc = -float(raw_measure)
+            jsc_val = isc * 1000 / config.area
+            print(f"jsc executor: calculation successful. isc={isc} a, jsc={jsc_val} ma/cm2 (area={config.area})")
+        except Exception as e:
+            print(f"jsc executor error: run_measurement calculation/parse failed: {e}")
+            raise e
+            
         return {
             "Isc (A)": isc,
             "Jsc (mA/cm2)": jsc_val,
@@ -47,7 +72,13 @@ class JscDirectExecutor(BaseExecutor):
         }
 
     def teardown_hardware(self, config: JscDirectConfig, instrument):
-        instrument.keithley.disable_source()
+        print("jsc executor: disabling source")
+        try:
+            instrument.keithley.disable_source()
+            print("jsc executor: source disabled successfully")
+        except Exception as e:
+            print(f"jsc executor error: failed to disable source: {e}")
+            raise e
 
 class JscDirectFormatter:
     """Take the measurement results of the executor and handles logging, saving, and formatting."""

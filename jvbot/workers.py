@@ -179,6 +179,7 @@ class WorkerTemplate(Worker_roboflo):
                     self.worker_logger.info(f"[FINISHED] {msg_finish}")
 
             except Exception as e:
+                print(f"worker template error: task '{task['name']}' for sample '{task['sample']}' failed with exception: {e}")
                 self.logger.exception(f"Exception in task {task_description}")
                 err_msg = f"Failed task '{task['name']}' with error: {e}"
                 if hasattr(self, "worker_logger") and self.worker_logger:
@@ -211,14 +212,10 @@ class Worker_Gantry(WorkerTemplate):
                 estimated_duration=5,
                 other_workers=[Worker_Measurement],
             ),
-            "gohome": task_tuple(
-                function=self.gohome,
-                estimated_duration=10,
-                other_workers=[Worker_Measurement],
-            ),
         }
 
     def move_to_sample(self, sample, details):
+        print(f"gantry worker: moving to sample {sample} with details {details}")
         slot = None
         if isinstance(sample, dict):
             slot = sample.get("slot")
@@ -226,11 +223,18 @@ class Worker_Gantry(WorkerTemplate):
             slot = details.get("slot")
 
         if slot is not None:
+            print(f"gantry worker: slot resolved to {slot}")
             if hasattr(self.maestro, "move_to_slot"):
-                self.maestro.move_to_slot(slot)
-
-    def gohome(self, sample, details):
-        pass
+                try:
+                    self.maestro.move_to_slot(slot)
+                    print(f"gantry worker: successfully moved to slot {slot}")
+                except Exception as e:
+                    print(f"gantry worker: error moving to slot {slot}: {e}")
+                    raise e
+            else:
+                print("gantry worker: error - maestro has no move_to_slot method")
+        else:
+            print("gantry worker: error - slot is None, cannot move")
 
 
 class Worker_Measurement(WorkerTemplate):
@@ -267,6 +271,11 @@ class Worker_Measurement(WorkerTemplate):
                 estimated_duration=5,
                 other_workers=[Worker_Gantry],
             ),
+            "dark_jv": task_tuple(
+                function=self.dark_jv, # not implemented yet
+                estimated_duration=5,
+                other_workers=[Worker_Gantry],
+            )
         }
 
     def jv_sweep(self, sample, details):
@@ -354,31 +363,73 @@ class Worker_Measurement(WorkerTemplate):
         return data
 
     def jsc_direct(self, sample, details):
+        print(f"measurement worker: starting jsc_direct for sample {sample} (details: {details})")
         # config
-        config_kwargs = details.copy()
+        try:
+            config_kwargs = details.copy()
+        except Exception as e:
+            print(f"measurement worker: failed to copy details dict: {e}")
+            raise e
         config_kwargs["name"] = sample.get("name", sample) if isinstance(sample, dict) else str(sample)
         try:
             config = JscDirectConfig(**config_kwargs)
+            print(f"measurement worker: config initialized for {config.name}")
         except TypeError as e:
+            print(f"measurement worker: config initialization failed due to type mismatch: {e}")
             raise ValueError(
                 f"Unexpected parameters passed to JscDirectConfig. "
                 f"Original error: {e}. Please check your worklist data format."
             )
-        config.validate()
+        try:
+            config.validate()
+        except Exception as e:
+            print(f"measurement worker: config validation failed: {e}")
+            raise e
 
         instrument = getattr(self.maestro, "instrument", getattr(self.maestro, "control_keithley", None))
         if not instrument:
+            print("measurement worker: warning - no instrument/control_keithley found on maestro")
             self.logger.warning("No instrument/control_keithley found on maestro. Skipping jsc_direct execution.")
             return None
 
         # execute
         executor = JscDirectExecutor()
-        executor.setup_hardware(config, instrument)
-        data = executor.run_measurement(config, instrument)
-        executor.teardown_hardware(config, instrument)
+        print("measurement worker: setting up keithley hardware...")
+        try:
+            executor.setup_hardware(config, instrument)
+        except Exception as e:
+            print(f"measurement worker: setup_hardware failed: {e}")
+            raise e
+        
+        print("measurement worker: running jsc measurement...")
+        try:
+            data = executor.run_measurement(config, instrument)
+            print(f"measurement worker: measurement completed raw data: {data}")
+        except Exception as e:
+            print(f"measurement worker: run_measurement failed: {e}")
+            try:
+                executor.teardown_hardware(config, instrument)
+            except:
+                pass
+            raise e
+
+        print("measurement worker: tearing down keithley hardware...")
+        try:
+            executor.teardown_hardware(config, instrument)
+        except Exception as e:
+            print(f"measurement worker: teardown_hardware failed: {e}")
+            raise e
 
         # format
-        JscDirectFormatter.format_and_save(data, config, instrument)
+        print("measurement worker: formatting and saving data...")
+        try:
+            JscDirectFormatter.format_and_save(data, config, instrument)
+            slot_info = sample.get("slot") if isinstance(sample, dict) else "unknown"
+            jsc_val = data.get("Jsc (mA/cm2)", "error")
+            print(f"result: slot={slot_info}, jsc={jsc_val} ma/cm2")
+        except Exception as e:
+            print(f"measurement worker: format_and_save failed: {e}")
+            raise e
         return data
 
     def jsc_buffered(self, sample, details):
@@ -436,6 +487,9 @@ class Worker_Measurement(WorkerTemplate):
         # format
         SpoBufferedFormatter.format_and_save(data, config, instrument)
         return data
+
+    def dark_jv(self, sample, details):
+        pass
 
 
 class Worker_SolarSim(WorkerTemplate):
