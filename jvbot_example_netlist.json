@@ -25,7 +25,7 @@
                     "name": "jsc_direct",
                     "sample": "sample0",
                     "start": 20,
-                    "precedent": "voc_slotA1",
+                    "precedent": "move_to_slotA1",
                     "details": {
                         "nplc": 1.0,
                         "compliance_current": 1.05
@@ -36,7 +36,7 @@
                     "name": "move_to_sample",
                     "sample": "sample0",
                     "start": 30,
-                    "precedent": null,
+                    "precedent": "jsc_slotA1",
                     "details": {
                         "slot": "E5"
                     }
@@ -46,7 +46,7 @@
                     "name": "jsc_direct",
                     "sample": "sample0",
                     "start": 50,
-                    "precedent": "voc_slotE5",
+                    "precedent": "move_to_slotE5",
                     "details": {
                         "nplc": 1.0,
                         "compliance_current": 1.05
