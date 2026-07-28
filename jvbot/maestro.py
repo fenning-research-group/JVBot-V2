@@ -18,7 +18,7 @@ MODULE_DIR = os.path.dirname(__file__)
 with open(os.path.join(MODULE_DIR, "hardware", "hardwareconstants.yaml"), "r") as f:
     constants = yaml.load(f, Loader=yaml.FullLoader)
 
-ROOTDIR = "C:\\Users\\Admin\\Desktop\\JVBot_Runs" # change? no clue
+ROOTDIR = "C:\\Users\\jpalm\\Documents\\JVBot_Runs" # change? no clue
 
 class Maestro:
     def __init__(
