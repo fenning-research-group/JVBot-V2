@@ -56,9 +56,9 @@ class JscDirectExecutor(BaseExecutor):
             raise e
             
         try:
-            raw_measure = self._measure(config=config, instrument=instrument)
+            #raw_measure = self._measure(config=config, instrument=instrument)
             print(f"jsc executor: parsing raw measurement string to float: '{raw_measure}'")
-            isc = -float(raw_measure)
+            isc = -float(self._measure(config=config, instrument=instrument))
             jsc_val = isc * 1000 / config.area
             print(f"jsc executor: calculation successful. isc={isc} a, jsc={jsc_val} ma/cm2 (area={config.area})")
         except Exception as e:
