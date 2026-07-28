@@ -1,0 +1,48 @@
+{
+    "description": "move to A1, scan Voc, scan Jsc, save outputs",
+    "name": "jsc_voc_scan_example",
+    "samples": {
+        "sample0": {
+            "name": "sample0",
+            "substrate": "Perovskite",
+            "storage_slot": {
+                "slot": "A1",
+                "tray": "Tray1"
+            },
+            "worklist": [
+                {
+                    "id": "move_to_slotA1",
+                    "name": "move_to_sample",
+                    "sample": "sample0",
+                    "start": 0,
+                    "precedent": null,
+                    "details": {
+                        "slot": "A1"
+                    }
+                },
+                {
+                    "id": "voc_slotA1",
+                    "name": "voc_direct",
+                    "sample": "sample0",
+                    "start": 5,
+                    "precedent": "move_to_slotA1",
+                    "details": {
+                        "nplc": 1.0,
+                        "compliance_voltage": 20
+                    }
+                },
+                {
+                    "id": "jsc_slotA1",
+                    "name": "jsc_direct",
+                    "sample": "sample0",
+                    "start": 10,
+                    "precedent": "voc_slotA1",
+                    "details": {
+                        "nplc": 1.0,
+                        "compliance_current": 1.05
+                    }
+                }
+            ]
+        }
+    }
+}
