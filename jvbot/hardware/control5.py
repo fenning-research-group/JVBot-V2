@@ -10,7 +10,10 @@ from tqdm import tqdm
 #################################################
 # THIS IS EXPERIMENTAL CODE FOR SCAN RATE and DARK JVs #
 #################################################
+
 class Control_Keithley_Eric:
+
+
 	def __init__(self, area = 0.048, address='GPIB0::22::INSTR'):
 		"""
 			Initializes Keithley 2400 class SMUs
@@ -648,7 +651,7 @@ class Control_Keithley_Eric:
 		self._reset_keithley()
 		return I_meas, I_std, V_app
 
-	def _sweep_dark_jv_bins(self, v_array, NPLC, R_thresh, fit_bin, n_measurements, crash_time, measure_delay, verbose = True):
+	def _sweep_dark_jv_bins(self, v_array, NPLC, R_thresh, fit_bin, n_measurements, crash_time, measure_delay, verbose = False):
 		# execute direction_0 sweep
 		I_meas = []
 		I_std = []

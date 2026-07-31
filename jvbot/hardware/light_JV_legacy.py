@@ -289,7 +289,7 @@ class Control_Keithley:
         self.keithley.enable_source()
         for m, v_ in enumerate(v):
             self.keithley.source_voltage = v_
-            vmeas[m], i[m], _ = self.measure()
+            vmeas[m], i[m], _ = self._measure()
         self.keithley.disable_source()
         return v, i, vmeas, light
     def _format_jv(self, v, i, vmeas, light, name, dir, scan_number, preview = True):
@@ -370,7 +370,7 @@ class Control_Keithley:
         self._source_voltage_measure_current()
         self.keithley.source_voltage = 0
         self.keithley.enable_source()
-        isc = -self.measure()[1]
+        isc = -self._measure()[1]
         jsc_val = isc*1000/self.area
         self.keithley.disable_source()
         if printed:

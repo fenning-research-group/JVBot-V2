@@ -37,7 +37,8 @@ class JVControl:
         if Eric_Opt is None:
             response = self._prompt_for_input("Do you want to use Eric's Scan-Rate Sweeps or Dark JV's? (y/n)")
             if response in ['y', 'Y']:
-                self.control_keithley = DarkJVScanRatesControl(area = self.area, ScanRateDarkJV = True)
+                self.control_keithley = DarkJVScanRatesControl(area = self.area)
+                # self.control_keithley = DarkJVScanRatesControl(area = self.area, ScanRateDarkJV = True)
             else:
                 self.control_keithley = OldControl(area = self.area)
                 # ScanRateDarkJV = False)

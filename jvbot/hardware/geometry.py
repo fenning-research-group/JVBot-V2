@@ -164,15 +164,15 @@ class Workspace:
             return chr(ord("A") + num)
         self._coordinates = {}
         self._openslots = []
-        self._xcoords = [
-            letter(self.gridsize[0] - yidx - 1) for yidx in range(self.gridsize[0])
-        ]
         self._ycoords = [
-            xidx + 1 for xidx in range(self.gridsize[1])
+            letter(self.gridsize[1] - yidx - 1) for yidx in range(self.gridsize[1])
+        ]
+        self._xcoords = [
+            xidx + 1 for xidx in range(self.gridsize[0])
         ]
         for xidx in range(self.gridsize[0]):
             for yidx in range(self.gridsize[1]):
-                name = f"{self._xcoords[xidx]}{self._ycoords[yidx]}"
+                name = f"{self._ycoords[yidx]}{self._xcoords[xidx]}"
                 self._coordinates[name] = [
                     xidx * self.pitch[0],
                     yidx * self.pitch[1],

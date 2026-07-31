@@ -13,6 +13,7 @@ setup(
         'numpy',
         'matplotlib',
         'scipy',
+        'pymeasure', #0.15.0
         # 'keithley_package'
     ],
     license = 'MIT',
