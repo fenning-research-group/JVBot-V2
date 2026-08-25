@@ -21,8 +21,8 @@
                     }
                 },
                 {
-                    "id": "jsc_slotA1",
-                    "name": "jsc_direct",
+                    "id": "voc_slotA1",
+                    "name": "voc_direct",
                     "sample": "sample0",
                     "start": 20,
                     "precedent": "move_to_slotA1",
@@ -36,14 +36,14 @@
                     "name": "move_to_sample",
                     "sample": "sample0",
                     "start": 30,
-                    "precedent": "jsc_slotA1",
+                    "precedent": "voc_slotA1",
                     "details": {
                         "slot": "A5"
                     }
                 },
                 {
-                    "id": "jsc_slotA5",
-                    "name": "jsc_direct",
+                    "id": "voc_slotA5",
+                    "name": "voc_direct",
                     "sample": "sample0",
                     "start": 40,
                     "precedent": "move_to_slotA5",
