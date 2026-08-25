@@ -12,8 +12,6 @@ from tqdm import tqdm
 #################################################
 
 class Control_Keithley_Eric:
-
-
 	def __init__(self, area = 0.048, address='GPIB0::22::INSTR'):
 		"""
 			Initializes Keithley 2400 class SMUs

@@ -14,7 +14,7 @@
                     "id": "move_to_slotA1",
                     "name": "move_to_sample",
                     "sample": "sample0",
-                    "start": 0,
+                    "start": 10,
                     "precedent": null,
                     "details": {
                         "slot": "A1"
@@ -45,7 +45,7 @@
                     "id": "jsc_slotE5",
                     "name": "jsc_direct",
                     "sample": "sample0",
-                    "start": 50,
+                    "start": 40,
                     "precedent": "move_to_slotE5",
                     "details": {
                         "nplc": 1.0,

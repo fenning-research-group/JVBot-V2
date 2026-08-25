@@ -93,14 +93,12 @@ class Maestro:
         while response is None:
             try:
                 response = client.request("europe.pool.ntp.org", version=3)
-            except Exception as e:
-                print(f"nist time sync try failed: {e}")
+            except:
                 pass
             if time.time() - t0 >= 10:
                 warn("Could not get NIST time!")
                 return
         self.__local_nist_offset = response.tx_time - time.time()
-        print(f"nist time calibrated. offset is {self.__local_nist_offset} seconds")
 
     @property
     def experiment_time(self):
@@ -115,7 +113,6 @@ class Maestro:
     def make_background_event_loop(self):
         def exception_handler(loop, context):
             print("Exception raised in Maestro loop")
-            print(f"loop exception context: {context}")
             self.logger.error(json.dumps(context))
 
         self.loop = asyncio.new_event_loop()
@@ -163,13 +160,8 @@ class Maestro:
         # self.loop.set_debug(True)
     
     def _load_worklist(self, filepath):
-        print(f"loading worklist file: {filepath}")
-        try:
-            with open(filepath, "r") as f:
-                worklist = json.load(f)
-        except Exception as e:
-            print(f"failed to read or parse worklist json: {e}")
-            raise e
+        with open(filepath, "r") as f:
+            worklist = json.load(f)
         # self.tasks = worklist["tasks"]
         self.samples = worklist["samples"]
         self.tasks = []
@@ -192,13 +184,8 @@ class Maestro:
                 suffix = f"_{idx}"
             else:
                 break
-        print(f"creating experiment folder at: {folder}")
-        try:
-            os.mkdir(folder)
-            print(f"Experiment folder created at {folder}")
-        except Exception as e:
-            print(f"failed to create experiment folder {folder}: {e}")
-            raise e
+        os.mkdir(folder)
+        print(f"Experiment folder created at {folder}")
 
         self.experiment_folder = folder
         self.logger.setLevel(logging.DEBUG)
@@ -230,73 +217,34 @@ class Maestro:
         pass
 
     def run(self):
-        print("running experiment checklist...")
-        try:
-            self._experiment_checklist()
-        except Exception as e:
-            print(f"experiment checklist failed: {e}")
-            raise e
+        self._experiment_checklist()
         self.pending_tasks = []
         self.completed_tasks = {}
 
-        print("starting background event loop...")
         self._start_loop()
-        try:
-            self.t0 = self.nist_time
-            print(f"experiment started. t0 set to {self.t0}")
-        except Exception as e:
-            print(f"failed to get nist time for t0: {e}")
-            raise e
+        self.t0 = self.nist_time
 
-        for name, worker in self.workers.items():
-            print(f"priming worker: {name}")
-            try:
-                worker.prime(loop=self.loop)
-            except Exception as e:
-                print(f"failed to prime worker {name}: {e}")
-                raise e
+        for worker in self.workers.values():
+            worker.prime(loop=self.loop)
         for task in self.tasks:
             assigned = False
             for workername, worker in self.workers.items():
                 if task["name"] in worker.functions:
-                    print(f"assigning task {task['name']} for sample {task['sample']} to worker {workername}")
                     worker.add_task(task)
                     assigned = True
                     continue
             if not assigned:
-                print(f"error: no worker has task {task['name']} in functions list")
                 raise Exception(f"No worker assigned to task {task['name']}")
 
-        for name, worker in self.workers.items():
-            print(f"starting worker: {name}")
-            try:
-                worker.start()
-            except Exception as e:
-                print(f"failed to start worker {name}: {e}")
-                raise e
+        for worker in self.workers.values():
+            worker.start()
 
     def move_to_slot(self, slot):
         """Move the gantry probe head to the specified sample slot on the tray."""
-        if self.tray is None:
-            print("warning: move_to_slot failed because tray is not configured (self.tray is None)")
-        if self.gantry is None:
-            print("warning: move_to_slot failed because gantry is not configured (self.gantry is None)")
         if self.tray is not None and self.gantry is not None:
-            print(f"resolving coordinates for slot {slot}...")
-            try:
-                coords = self.tray(slot)
-                print(f"resolved slot {slot} coordinates to: {coords}")
-            except Exception as e:
-                print(f"failed to get coordinates for slot {slot} from tray: {e}")
-                raise e
+            coords = self.tray(slot)
             self.logger.info(f"Moving probe head to slot '{slot}' (coords: {coords})")
-            print(f"gantry moving to coords: {coords}")
-            try:
-                self.gantry.moveto(*coords)
-                print(f"gantry move to {slot} completed successfully")
-            except Exception as e:
-                print(f"gantry move to coords {coords} failed: {e}")
-                raise e
+            self.gantry.moveto(*coords, zhop=True)
         else:
             self.logger.warning(f"Gantry or Tray not configured. Cannot move to slot '{slot}'.")
 
@@ -304,10 +252,7 @@ class Maestro:
         print('Beginning to stop JVBot')
         self.working = False
         
-        for name, w in self.workers.items():
-            print(f"Stopping worker {name} now")
-            try:
-                w.stop_workers()
-                print(f"\tStop Successful for {name}!")
-            except Exception as e:
-                print(f"failed to stop worker {name}: {e}")
+        for w in self.workers.values():
+            print(f"Stopping {w} now")
+            w.stop_workers()
+            print(f"\tStop Successful!")
