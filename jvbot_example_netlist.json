@@ -30,6 +30,17 @@
                         "nplc": 1.0,
                         "compliance_current": 1.05
                     }
+                },
+                {
+                    "id": "jsc_slotA1",
+                    "name": "jsc_direct",
+                    "sample": "sample0",
+                    "start": 30,
+                    "precedent": "voc_slotA1",
+                    "details": {
+                        "nplc": 1.0,
+                        "compliance_current": 1.05
+                    }
                 }
             ]
         }
