@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from ..core.containers import BaseConstantsConfig, ProtocolMetadataConfig
 from ..core.measure import BaseExecutor
+import os
 
 @dataclass
 class JscDirectConfig(BaseConstantsConfig):
@@ -53,7 +54,7 @@ class JscDirectFormatter:
     """Take the measurement results of the executor and handles logging, saving, and formatting."""
     
     @staticmethod
-    def format_and_save(raw_data: dict, config: JscDirectConfig, instrument):
+    def format_and_save(raw_data: dict, config: JscDirectConfig, instrument, experiment_folder: str):
         isc = raw_data["Isc (A)"]
         jsc_val = raw_data["Jsc (mA/cm2)"]
         if config.printed:
@@ -67,7 +68,7 @@ class JscDirectFormatter:
             "Active Area (cm2)": [config.area],
         })
         
-        filename = f"{config.name}_jsc_direct.csv"
+        filename = os.path.join(experiment_folder, f"{config.name}_jsc_direct.csv")
         data.to_csv(filename, index=False)
         return data
 

@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from ..core.containers import BaseConstantsConfig, ProtocolMetadataConfig
 from ..core.measure import BaseExecutor
+import os
 
 @dataclass
 class VocBufferedConfig(BaseConstantsConfig):
@@ -54,7 +55,7 @@ class VocBufferedFormatter:
     """Take the measurement results of the executor and handles logging, saving, and formatting."""
     
     @staticmethod
-    def format_and_save(raw_data: dict, config: VocBufferedConfig, instrument):
+    def format_and_save(raw_data: dict, config: VocBufferedConfig, instrument, experiment_folder: str):
         voc_val = raw_data["Voc (V)"]
         if config.printed:
             print(f"Voc: {voc_val * 1000:.2f} mV")
@@ -67,7 +68,7 @@ class VocBufferedFormatter:
         })
         
         filename = f"{config.name}_voc_buffered.csv"
-        data.to_csv(filename, index=False)
+        data.to_csv(os.path.join(experiment_folder, filename), index=False)
         return data
 
 VOC_BUFFERED_CONTAINER = ProtocolMetadataConfig(

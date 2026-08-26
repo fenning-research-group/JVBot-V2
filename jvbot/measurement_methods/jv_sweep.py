@@ -6,6 +6,7 @@ import time
 import matplotlib.pyplot as plt
 from ..core.containers import BaseConstantsConfig, ProtocolMetadataConfig
 from ..core.measure import BaseExecutor
+import os
 
 @dataclass
 class JVSweepConfig(BaseConstantsConfig):
@@ -137,12 +138,12 @@ class JVSweepFormatter:
         time.sleep(1e-4)		#pause allows plot to update during series of measurements 
 
     @staticmethod
-    def format_and_save(raw_data: dict, config: JVSweepConfig, instrument, scan_number: int = None):
+    def format_and_save(raw_data: dict, config: JVSweepConfig, instrument, scan_number: int = None, experiment_folder: str = None):
         # Handle composite double sweeps recursively if nested
         if "scans" in raw_data:
             dfs = []
             for idx, scan in enumerate(raw_data["scans"]):
-                df = JVSweepFormatter.format_and_save(scan, config, instrument, scan_number=idx+1)
+                df = JVSweepFormatter.format_and_save(scan, config, instrument, scan_number=idx+1, experiment_folder=experiment_folder)
                 dfs.append(df)
             return dfs
 
@@ -166,9 +167,9 @@ class JVSweepFormatter:
         light_str = "light" if raw_data["light"] else "dark"
         scan_suffix = f"_{scan_number}" if scan_number is not None else ""
         filename = f"{config.name}{scan_suffix}_{raw_data['direction']}_{light_str}.csv"
-        data.to_csv(filename, index = False)
+        data.to_csv(os.path.join(experiment_folder, filename), index = False)
         if config.preview:
-            JVSweepFormatter._preview( v, j, 'Voltage (V)', 'Current Density (mA/cm2)', filename.replace('.csv', ''))
+            JVSweepFormatter._preview( v, j, 'Voltage (V)', 'Current Density (mA/cm2)', os.path.join(experiment_folder, filename.replace('.csv', '')))
         return data
 
 

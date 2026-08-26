@@ -5,6 +5,7 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 from ..core.containers import BaseConstantsConfig, ProtocolMetadataConfig
 from ..core.measure import BaseExecutor
+import os
 
 @dataclass
 class SpoBufferedConfig(BaseConstantsConfig):
@@ -147,7 +148,7 @@ class SpoBufferedFormatter:
             print(f"Could not render plot preview: {e}")
 
     @staticmethod
-    def format_and_save(raw_data: dict, config: SpoBufferedConfig, instrument):
+    def format_and_save(raw_data: dict, config: SpoBufferedConfig, instrument, experiment_folder: str):
         v = raw_data["v"]
         i = raw_data["i"]
         vmeas = raw_data["vmeas"]
@@ -169,10 +170,10 @@ class SpoBufferedFormatter:
         })
         
         filename = f"{config.name}_SPO.csv"
-        data.to_csv(filename, index=False)
+        data.to_csv(os.path.join(experiment_folder, filename), index=False)
         
         if config.preview:
-            SpoBufferedFormatter._preview(t, p, 'Time (s)', 'Power (mW/cm2)', filename.replace('.csv', ''))
+            SpoBufferedFormatter._preview(t, p, 'Time (s)', 'Power (mW/cm2)', os.path.join(experiment_folder, filename.replace('.csv', '')))
             
         return data
 

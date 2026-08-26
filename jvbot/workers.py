@@ -294,7 +294,7 @@ class Worker_Measurement(WorkerTemplate):
         executor.teardown_hardware(config, instrument)
 
         # format
-        JVSweepFormatter.format_and_save(data, config, instrument)
+        JVSweepFormatter.format_and_save(data, config, instrument, self.maestro.experiment_folder)
         return data
 
     def voc_direct(self, sample, details):
@@ -322,7 +322,7 @@ class Worker_Measurement(WorkerTemplate):
         executor.teardown_hardware(config, instrument)
 
         # format
-        VocDirectFormatter.format_and_save(data, config, instrument)
+        VocDirectFormatter.format_and_save(data, config, instrument, self.maestro.experiment_folder)
         return data
 
     def voc_buffered(self, sample, details):
@@ -350,7 +350,7 @@ class Worker_Measurement(WorkerTemplate):
         executor.teardown_hardware(config, instrument)
         
         # format
-        VocBufferedFormatter.format_and_save(data, config, instrument)
+        VocBufferedFormatter.format_and_save(data, config, instrument, self.maestro.experiment_folder)
         return data
 
     def jsc_direct(self, sample, details):
@@ -378,7 +378,7 @@ class Worker_Measurement(WorkerTemplate):
         executor.teardown_hardware(config, instrument)
 
         # format
-        JscDirectFormatter.format_and_save(data, config, instrument)
+        JscDirectFormatter.format_and_save(data, config, instrument, self.maestro.experiment_folder)
         return data
 
     def jsc_buffered(self, sample, details):
@@ -406,7 +406,7 @@ class Worker_Measurement(WorkerTemplate):
         executor.teardown_hardware(config, instrument)
 
         # format
-        JscBufferedFormatter.format_and_save(data, config, instrument)
+        JscBufferedFormatter.format_and_save(data, config, instrument, self.maestro.experiment_folder)
         return data
 
     def spo_buffered(self, sample, details):
@@ -434,7 +434,7 @@ class Worker_Measurement(WorkerTemplate):
         executor.teardown_hardware(config, instrument)
 
         # format
-        SpoBufferedFormatter.format_and_save(data, config, instrument)
+        SpoBufferedFormatter.format_and_save(data, config, instrument, self.maestro.experiment_folder)
         return data
 
     def dark_jv(self, sample, details):

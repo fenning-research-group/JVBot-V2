@@ -3,6 +3,7 @@ import pandas as pd
 from datetime import datetime
 from ..core.containers import BaseConstantsConfig, ProtocolMetadataConfig
 from ..core.measure import BaseExecutor
+import os
 
 @dataclass
 class JscBufferedConfig(BaseConstantsConfig):
@@ -58,7 +59,7 @@ class JscBufferedFormatter:
     """Take the measurement results of the executor and handles logging, saving, and formatting."""
     
     @staticmethod
-    def format_and_save(raw_data: dict, config: JscBufferedConfig, instrument):
+    def format_and_save(raw_data: dict, config: JscBufferedConfig, instrument, experiment_folder: str):
         isc = raw_data["Isc (A)"]
         jsc_val = raw_data["Jsc (mA/cm2)"]
         if config.printed:
@@ -73,7 +74,7 @@ class JscBufferedFormatter:
             "buffer_points": [raw_data["buffer_points"]],
         })
         
-        filename = f"{config.name}_jsc_buffered.csv"
+        filename = os.path.join(experiment_folder, f"{config.name}_jsc_buffered.csv")
         data.to_csv(filename, index=False)
         return data
 
