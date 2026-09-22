@@ -14,7 +14,8 @@ setup(
         'matplotlib',
         'scipy',
         'pymeasure', #0.15.0
-        # 'keithley_package'
+        'ipykernel',
+        'tqdm'
     ],
     license = 'MIT',
     long_descripton = open('./jvbot/README.txt').read(),
