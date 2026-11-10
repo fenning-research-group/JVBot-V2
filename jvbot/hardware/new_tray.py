@@ -26,15 +26,15 @@ class SampleTray(Workspace):
         name,
         version,
         gantry: Gantry,
-        testslots: List[str],
-        p0 = [0, 0, 0],
+        # testslots: List[str],
+        p0 = [148, 165, 40],
         sample_size: str = "square_10mm"
     ):
         print(sample_size)
         print(get_sizekey(sample_size))
         constants, workspace_kwargs = self._load_version(version, sample_size = get_sizekey(size_str = sample_size))
         super().__init__(
-            name = name, gantry = gantry, testslots = testslots, p0=p0, **workspace_kwargs
+            name = name, gantry = gantry, p0=p0, **workspace_kwargs
         )
         self.contents = {}
     def _load_version(self, version, sample_size):
@@ -49,6 +49,8 @@ class SampleTray(Workspace):
             "gridsize": (constants["numx"], constants["numy"]),
             "z_clearance": constants["z_clearance"],
         }
+        testslots = constants.get("testslots", ["I1"])
+        workspace_kwargs["testslots"] = testslots
         return constants, workspace_kwargs
     def export(self, fpath):
         """
@@ -58,7 +60,7 @@ class SampleTray(Workspace):
 
 class Tray10mm(SampleTray):
     "Wrapper class with default arguments for the 10mmx10mm single pixel device layout."
-    def __init__(self, version="tray_v1", gantry=None, p0=[0, 0, 0], sample_size: str = "square_10mm"):
+    def __init__(self, version="tray_v1", gantry=None, p0=[148, 165, 40], sample_size: str = "square_10mm"):
         super().__init__(
-            name="Tray10mm", version=version, gantry=gantry, p0=p0, testslots = ["I1"], sample_size = sample_size
+            name="Tray10mm", version=version, gantry=gantry, p0=p0, sample_size = sample_size
         )

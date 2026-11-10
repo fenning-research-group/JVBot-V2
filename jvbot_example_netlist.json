@@ -28,7 +28,7 @@
                     "precedent": "move_to_slotA1",
                     "details": {
                         "nplc": 1.0,
-                        "compliance_current": 1.05
+                        "compliance_voltage": 20.0
                     }
                 },
                 {

@@ -8,7 +8,9 @@ import csv
 
 class Control_Keithley:
 
-    def __init__(self, area = 0.048, address='GPIB0::22::INSTR'):
+    def __init__(self, area = 0.048, 
+    address='GPIB0::22::INSTR'):
+    # address='GPIB0::25::INSTR'):
         """
             Initialize Keithley 2400 class SMUs
 
@@ -57,10 +59,12 @@ class Control_Keithley:
         """
         self.keithley = Keithley2400(keithley_address)
         self.keithley.reset()
-        self.keithley.use_front_terminals()
+        # self.keithley.use_front_terminals()
+        self.keithley.use_rear_terminals()
         self.keithley.apply_voltage()
         self.keithley.wires = self.wires
         self.keithley.compliance_current = self.compliance_current
+        self.keithley.compliance_voltage = self.compliance_voltage
         self.keithley.buffer_points = self.buffer_points
         self.keithley.source_voltage = 0
 

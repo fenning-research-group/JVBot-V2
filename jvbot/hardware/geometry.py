@@ -49,9 +49,10 @@ class CoordinateMapper:
 def map_coordinates(
         name: str,
         slots: list,
+        points: list,
         gantry: Gantry,
         z_clearance: float = 5,
-        sample_size: SizeOpts = SizeOpts.square_10mm
+        sample_size: Union[SizeOpts, str] = 'square_10mm'
     ):
     """Prompts user to move probe head to target points on labware for calibration purposes.
 
@@ -155,10 +156,10 @@ class Workspace:
                 testslots.append(
                     f"{self._ycoords[yidx]}{self._xcoords[xidx]}"
                 )
-            self.testslots = testslots
-            self.testpoints = np.array(
-                [self._coordinates[name] for name in testslots]
-            ).astype(float32)
+        self.testslots = testslots
+        self.testpoints = np.array(
+            [self._coordinates[name] for name in testslots]
+        ).astype(np.float32)
     def __generate_coordinates(self):
         def letter(num):
             return chr(ord("A") + num)
@@ -174,8 +175,10 @@ class Workspace:
             for yidx in range(self.gridsize[1]):
                 name = f"{self._ycoords[yidx]}{self._xcoords[xidx]}"
                 self._coordinates[name] = [
-                    xidx * self.pitch[0],
-                    yidx * self.pitch[1],
+                    -yidx * self.pitch[1],
+                    -xidx * self.pitch[0],
+                    # xidx * self.pitch[0],
+                    # yidx * self.pitch[1],
                     0
                 ]
     def slot_coordinates(self, name):
@@ -193,20 +196,21 @@ class Workspace:
         if self.__is_simulation:
             raise Exception("Cannot calibrate a simulated workspace")
         self.gantry.moveto(*self.p0)
+        print(self._SAMPLESIZEOPTION.value)
         self.transform = map_coordinates(
             self.name,
             self.testslots,
             self.testpoints,
             self.gantry,
             self.z_clearance,
-            sample_size = self._SAMPLESIZEOPTION
+            sample_size = self._SAMPLESIZEOPTION.value
         )
         self.__calibrated = True
     def _load_calibration(self):
         with open(
             os.path.join(CALIBRATION_DIR, f"{self.name}_calibration.yaml"), "r"
         ) as f:
-            pts = yaml.load(f, Loader=yaml.FullLoader)[self._SAMPLESIZEOPTION]
+            pts = yaml.load(f, Loader=yaml.FullLoader)[self._SAMPLESIZEOPTION.value]
         self.transform = CoordinateMapper(p0 = pts["p0"], p1 = pts["p1"])
         self.__calibrated = True
     def plot(tray, ax=None, is_samples = False, updated_colorscheme = False):

@@ -5,6 +5,8 @@ from ..core.containers import BaseConstantsConfig, ProtocolMetadataConfig
 from ..core.measure import BaseExecutor
 import os
 
+ROOTDIR = "C:\\Users\\jpalm\\Documents\\JVBot_Runs"
+
 @dataclass
 class JscDirectConfig(BaseConstantsConfig):
     name: str # sample name

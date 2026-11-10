@@ -11,4 +11,4 @@ square_10mm:
   y0: 148
   ypitch: 15.65
   z_clearance: 4
-  # testslots = []
+  testslots: ["I1", "I5", "E3", "A5", "A1"]

@@ -219,6 +219,7 @@ class Gantry:
             response = response_0.split()
             self._handle.settimeout(30)
         else:
+            self._handle.settimeout(1000)
             response = self._handle.recv(1024).decode("utf-8").strip()
             response_0 = None
         return response_0, response
@@ -234,7 +235,8 @@ class Gantry:
         #         pass
         #     self.session.close()
         #     del self.session
-        
+        if self.ip in self._connected_network_devices:
+            self._connected_network_devices.pop(ip)
         self._handle.close()
         del self._handle
 
@@ -252,8 +254,12 @@ class Gantry:
             #     "M906 X580 Y580 Z25"
             # )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
             self.write(
-                "M84 S0"
-            )  # disable stepper timeout, steppers remain engaged all the time
+                "M906 X580 Y580 Z25 T1000"
+            )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
+            
+            # self.write(
+            #     "M84 S0"
+            # )  # disable stepper timeout, steppers remain engaged all the time
             # self.write(
             #     f"M203 X50 Y50 Z1.00"
             # )  # set max speeds, steps/mm. Z is hardcoded, limited by lead screw hardware.
@@ -271,7 +277,8 @@ class Gantry:
             #     "M201 X250.0 Y250.0 Z10.0"
             # )  # acceleration steps/mm/mm, randomly resets to defaults sometimes idk why
             self.write(
-                "M906 X580 Y580 Z25"
+                "M906 X800 Y800 Z800 E1"
+                # "M906 X580 Y580 Z25"
             )  # set max stepper RMS currents (mA) per axis. E = extruder, unused to set low
             self.write(
                 "M84 S0"
